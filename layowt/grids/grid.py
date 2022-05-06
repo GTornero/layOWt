@@ -68,7 +68,6 @@ class Grid:
         self.n_rows = n_rows
         self.n_cols = n_cols
         self.row_step = row_step
-        self.row_step = n_cols
         self.col_step = col_step
         self.row_offset = row_offset
         self.col_offset = col_offset
@@ -77,6 +76,26 @@ class Grid:
         self.y_shear = y_shear
         self.origin = origin
         self.scale = scale
+
+    def __repr__(self) -> str:
+        """__repr__ Representation of the Grid class
+
+        Returns
+        -------
+        str
+            repr string
+        """
+        return f"{self.__class__.__name__}(" + repr(self.__dict__) + ")"
+
+    def __str__(self) -> str:
+        """__str__ String representation of the Grid class:
+
+        Returns
+        -------
+        str
+            Grid class string
+        """
+        return str(self.__dict__)
 
     @property
     def coords(self) -> np.ndarray:
@@ -167,7 +186,7 @@ class Grid:
 
         return fig, ax
 
-    def set_scale(self, rotor_diameter: float, inplace: bool = False) -> "Grid" | None:
+    def set_scale(self, rotor_diameter: float, inplace: bool = False):
         """set_scale Set the scaling factor attribute used to scale the non-dimensional
         row and column spacings into the real space.
 
@@ -201,7 +220,7 @@ class Grid:
                 scale=rotor_diameter,
             )
 
-    def translate(self, x: float, y: float, inplace: bool = False) -> "Grid" | None:
+    def translate(self, x: float, y: float, inplace: bool = False):
         """translate Translate the grid by shifting the origin
 
         Parameters
