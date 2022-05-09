@@ -97,6 +97,39 @@ class Grid:
         """
         return str(self.__dict__)
 
+    def __key(self) -> tuple:
+        """__key key tuple for the Grid class. Used to create a unique hash for
+        using the Grid class as keys in a dictionary.
+
+        Returns
+        -------
+        tuple
+            tuple key of the grid attributes to be used as a key in dictionaries.
+        """
+        return (
+            self.n_rows,
+            self.n_cols,
+            self.row_step,
+            self.col_step,
+            self.row_offset,
+            self.col_offset,
+            self.angle,
+            self.x_shear,
+            self.y_shear,
+            self.origin,
+            self.scale,
+        )
+
+    def __hash__(self) -> int:
+        """__hash__ has method for the Grid class to use as a key in dictionaries.
+
+        Returns
+        -------
+        int
+            hash of the Grid class
+        """
+        return hash(self.__key())
+
     @property
     def coords(self) -> np.ndarray:
         """coords Coordinates of the points in the grid based on the grid attributes
