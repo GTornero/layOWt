@@ -4,7 +4,7 @@ to generate layouts."""
 import matplotlib.pyplot as plt
 import numpy as np
 from layowt.grids.utils import create_coords
-from shapely.geometry import MultiPoint
+from shapely.geometry import MultiPoint, Point
 
 
 class Grid:
@@ -330,3 +330,18 @@ class Grid:
             Shapely MultiPoint representation of the grid geometry.
         """
         return MultiPoint(self.coords)
+
+    def to_points(self) -> list[Point]:
+        """to_points2 This method returns the Grid instance geometries as a list
+        of shapely Point geometries.
+
+        Returns
+        -------
+        list[Point]
+            return a list of shapely Point geometries representing all the
+            positions in the grid.
+        """
+        points = []
+        for coord in self.coords:
+            points.append(Point(coord))
+        return points
