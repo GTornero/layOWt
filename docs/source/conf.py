@@ -40,7 +40,7 @@ extensions = [
     "nbsphinx", # can also use MyST-NB
 ]
 
-autoapi_dirs = ["../layowt"]
+autoapi_dirs = ["../../layowt"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
