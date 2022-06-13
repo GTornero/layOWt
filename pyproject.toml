@@ -9,7 +9,7 @@ requires-python = ">=3.10"
 version = "0.0.1"
 dynamic = ["version", "description"]
 
-[project.optional-dependencies]\
+[project.optional-dependencies]
 doc = [
     "sphinx~=5.0.1",
     "myst-parser",
