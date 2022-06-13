@@ -34,8 +34,13 @@ extensions = [
     "myst_parser",
     "sphinx.ext.duration",
     "sphinx.ext.autosectionlabel",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "autoapi.extension",
     "nbsphinx", # can also use MyST-NB
 ]
+
+autoapi_dirs = ["../layowt"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
