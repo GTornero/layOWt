@@ -61,12 +61,12 @@ def geoms_from_postgis(
     """
     db_string = f"postgresql://{username}:{password}@{host}/{db_name}"
     engine = create_engine(db_string)
-    df = gp.GeoDataFrame.from_postgis(
+    data = gp.GeoDataFrame.from_postgis(
         f'SELECT * from "{schema}"."{table}"',
         con=engine,
         geom_col=geom_col,
         **kwargs,
     )
-    geoms = list(df[geom_col])
+    geoms = list(data[geom_col])
 
     return geoms
