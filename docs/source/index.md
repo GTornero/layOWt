@@ -10,6 +10,13 @@
 :maxdepth: 2
 ```
 
+```{include} ../../README.md
+```
+
+```{warning}
+This library is under heavy development.
+```
+
 # Indices and tables
 
 - {ref}`genindex`
