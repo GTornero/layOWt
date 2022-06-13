@@ -13,4 +13,5 @@ doc = [
     "myst-parser",
     "furo",
     "nbsphinx",
+    "sphinx-autoapi",
 ]
