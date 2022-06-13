@@ -7,7 +7,7 @@
 
 # About
 
-**Documentation:** [ReadtheDocs] (https://layowt.readthedocs.io/en/latest/#)
+**Documentation:** [ReadtheDocs](https://layowt.readthedocs.io/en/latest/#)
 
 **License:** N/A
 
