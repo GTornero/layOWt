@@ -10,6 +10,7 @@
 :maxdepth: 2
 
 usage
+notebooks/tutorial
 ```
 
 ```{include} ../../README.md
