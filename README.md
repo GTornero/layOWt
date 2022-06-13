@@ -8,6 +8,7 @@
 # About
 
 **Documentation:** [ReadtheDocs](https://layowt.readthedocs.io/en/latest/#)
+[![Documentation Status](https://readthedocs.org/projects/layowt/badge/?version=latest)](https://layowt.readthedocs.io/en/latest/?badge=latest)
 
 **License:** N/A
 
