@@ -8,10 +8,16 @@
 ```{toctree}
 :caption: 'Contents:'
 :maxdepth: 2
+
+usage
 ```
 
 ```{include} ../../README.md
 ```
+
+For further info, check out {doc}`usage`.
+Read installation instructions in {ref}`Installation`.
+
 
 ```{warning}
 This library is under heavy development.
