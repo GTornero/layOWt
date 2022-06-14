@@ -19,6 +19,7 @@ dependencies = [
     "pyproj==3.3.1",
     "py-wake==2.3.0",
     "pytest==7.1.2",
+    "psycopg2==2.9.3",
 ]
 
 [project.optional-dependencies]

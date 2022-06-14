@@ -59,6 +59,7 @@ def geoms_from_postgis(
     list
         list of shapely geometries contained in the PostGIS table.
     """
+    # TODO: Should change the geopandas method from_postgis to read_postgis
     db_string = f"postgresql://{username}:{password}@{host}/{db_name}"
     engine = create_engine(db_string)
     data = gp.GeoDataFrame.from_postgis(
