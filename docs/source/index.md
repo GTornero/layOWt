@@ -5,14 +5,6 @@
 
 # Welcome to LayOWt's documentation!
 
-```{toctree}
-:caption: 'Contents:'
-:maxdepth: 2
-
-installation
-notebooks/tutorial
-```
-
 ```{include} ../../README.md
 ```
 
@@ -21,6 +13,14 @@ Read installation instructions in {doc}`installation`.
 
 ```{warning}
 This library is under heavy development.
+```
+
+```{toctree}
+:caption: 'Contents:'
+:maxdepth: 2
+
+installation
+notebooks/tutorial
 ```
 
 # Indices and tables
