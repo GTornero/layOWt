@@ -16,7 +16,7 @@ notebooks/tutorial
 ```{include} ../../README.md
 ```
 
-Read installation instructions in {ref}`installation`.
+Read installation instructions in {doc}`installation`.
 
 
 ```{warning}
