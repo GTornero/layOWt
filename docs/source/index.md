@@ -17,7 +17,7 @@ This library is under heavy development.
 
 ```{toctree}
 :caption: 'Contents:'
-:maxdepth: 2
+:maxdepth: 1
 
 installation
 notebooks/tutorial
@@ -27,4 +27,3 @@ notebooks/tutorial
 
 - {ref}`genindex`
 - {ref}`modindex`
-- {ref}`search`
