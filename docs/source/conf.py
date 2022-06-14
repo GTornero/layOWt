@@ -33,12 +33,15 @@ release = '0.0.1'
 extensions = [
     "myst_parser",
     "sphinx.ext.duration",
-    "sphinx.ext.autosectionlabel",
+    #"sphinx.ext.autosectionlabel",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinx.ext.autosummary",
     "autoapi.extension",
     "nbsphinx", # can also use MyST-NB
 ]
+
+autosummary_generate = True
 
 autoapi_dirs = ["../../layowt"]
 
