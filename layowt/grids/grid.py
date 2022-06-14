@@ -284,7 +284,7 @@ class Grid:
                 angle=self.angle,
                 x_shear=self.x_shear,
                 y_shear=self.y_shear,
-                origin=(x, y),
+                origin=(self.origin[0] + x, self.origin[1] + y),
                 scale=self.scale,
             )
 

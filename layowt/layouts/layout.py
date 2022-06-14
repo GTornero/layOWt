@@ -67,6 +67,7 @@ class Layout:
         if areas is not None:
             self.area = unary_union(areas)
             self.geom = self.geom.intersection(self.area)  # type: ignore
+        else:
             self.area = None
 
         if exclusions is not None:
