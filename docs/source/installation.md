@@ -107,3 +107,11 @@ As an optional, you can also install all of the dependencies LayOWt uses to buil
 ```console
 (LayOWt-venv) pip install .[doc]
 ```
+
+```{note}
+If you wish to install the LayOWt package in editable mode, you can run:
+
+```console
+(LayOWt-venv) pip install -e .[doc]
+```
+```
