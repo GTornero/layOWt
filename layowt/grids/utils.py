@@ -15,7 +15,7 @@ def _create_base_coords(
     row_offset: bool,
     col_offset: bool,
 ) -> np.ndarray:
-    """_create_base_coords Creates a simple rectangular grid of points.
+    """_create_base_coords Creates a simple rectangular grid of points centered around (0, 0) in non-dimensional space.
 
     Parameters
     ----------
@@ -36,7 +36,7 @@ def _create_base_coords(
 
     Returns
     -------
-    np.ndarray
+    numpy.ndarray
         Returns an ndarray of the [x,y] coordinate pairs of points.
     """
 
@@ -166,7 +166,7 @@ def create_coords(
     x_shear: float | None = None,
     y_shear: float | None = None,
 ) -> np.ndarray:
-    """create_coords Creates a grid of points.
+    """create_coords Creates a grid of points centered around (0, 0) in non-dimensional space.
 
     Parameters
     ----------
@@ -196,7 +196,7 @@ def create_coords(
 
     Returns
     -------
-    np.ndarray
+    numpy.ndarray
         Array of [x,y] coordinate pairs of all points in the grid.
 
     Raises
