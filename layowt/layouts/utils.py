@@ -13,7 +13,7 @@ def geoms_from_shapefile(filepath: str) -> list:
     Parameters
     ----------
     filepath : str
-        filepath of the shapefile to loads
+        filepath of the shapefile to load.
 
     Returns
     -------
