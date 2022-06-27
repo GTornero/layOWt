@@ -14,6 +14,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+from layowt import __release__, __version__
 
 # -- Project information -----------------------------------------------------
 
@@ -21,8 +22,11 @@ project = 'LayOWt'
 copyright = '2022, Guillermo Tornero'
 author = 'Guillermo Tornero'
 
+# The short X.Y version
+version = __version__
+
 # The full version, including alpha/beta/rc tags
-release = '0.0.2'
+release = __release__
 
 
 # -- General configuration ---------------------------------------------------
@@ -34,16 +38,28 @@ extensions = [
     "myst_parser",
     "sphinx.ext.duration",
     "sphinx.ext.autosectionlabel",
-    "sphinx.ext.autodoc",
+    #"sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
-    "sphinx.ext.autosummary",
+    #"sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
     "autoapi.extension",
     "nbsphinx", # can also use MyST-NB
+    "hoverxref.extension",
+    "sphinx_copybutton",
 ]
 
 autosummary_generate = True
 
 autoapi_dirs = ["../../layowt"]
+
+autoapi_options = [
+    'members',
+    'undoc-members',
+    'show-inheritance',
+    'show-module-summary',
+    'special-members',
+    'imported-members',
+    ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -53,6 +69,38 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_static"]
 
+# Intersphinx configuration
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy-1.8.1/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "py_wake": ("https://topfarm.pages.windenergy.dtu.dk/PyWake/", None),
+    "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
+}
+
+# Hoverxref Extension
+hoverxref_auto_ref = True
+hoverxref_mathjax = True
+hoverxref_intersphinx = [
+    "python",
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "py_wake",
+    "shapely",
+]
+hoverxref_domains = ["py"]
+hoverxref_role_types = {
+    "hoverxref": "modal",
+    "ref": "modal",  # for hoverxref_auto_ref config
+    "confval": "tooltip",  # for custom object
+    "mod": "tooltip",  # for Python Sphinx Domain
+    "class": "tooltip",  # for Python Sphinx Domain
+    "meth": "tooltip",
+    "obj": "tooltip",
+}
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -61,7 +109,7 @@ exclude_patterns = ["_static"]
 #
 html_theme = 'furo'
 
-html_logo = '../../img/logo.png'
+html_logo = '../../img/logo_small.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
