@@ -9,13 +9,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyproj
-from layowt.grids import Grid
 from matplotlib.figure import Figure
 from py_wake.wind_turbines import WindTurbine
 from shapely.geometry import (MultiPoint, MultiPolygon, Point, Polygon,
                               mapping, shape)
 from shapely.ops import unary_union
 from sqlalchemy import create_engine
+
+from ..grids import Grid
 
 
 class Layout:
