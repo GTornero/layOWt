@@ -77,6 +77,7 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "py_wake": ("https://topfarm.pages.windenergy.dtu.dk/PyWake/", None),
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
+    "rasterio": ("https://rasterio.readthedocs.io/en/latest/", None),
 }
 
 # Hoverxref Extension
@@ -89,6 +90,7 @@ hoverxref_intersphinx = [
     "matplotlib",
     "py_wake",
     "shapely",
+    "rasterio",
 ]
 hoverxref_domains = ["py"]
 hoverxref_role_types = {
