@@ -1,6 +1,4 @@
-<p align="center" style="font-size:40px; margin:0px 10px 0px 10px">
-    <em>layOWt</em>
-</p>
+![LayOWt_logo](https://user-images.githubusercontent.com/66472009/175377974-70b87ac3-75f3-4c06-9a60-4347f1b0bc6b.png)
 <p align="center">
     <em>Multi-disciplinary Offshore Wind Farm Layout Optimisation in Python</em>
 </p>
