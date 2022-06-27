@@ -5,14 +5,7 @@
 
 # Welcome to LayOWt's documentation!
 
-```{toctree}
-:caption: 'Contents:'
-:titlesonly:
-:maxdepth: 2
 
-installation
-tutorial
-```
 
 ```{include} ../../README.md
 ```
@@ -27,6 +20,16 @@ This library is under heavy development.
 ```
 
 # Indices and tables
+
+```{toctree}
+:caption: 'Contents:'
+:titlesonly:
+:hidden:
+:maxdepth: 2
+
+installation
+tutorial
+```
 
 - {ref}`genindex`
 - {ref}`modindex`
