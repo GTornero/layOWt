@@ -1,3 +1,6 @@
+""" This module contains generator classes in charge of procedurally generating layouts.
+"""
+
 from collections import OrderedDict
 from itertools import product
 from typing import Iterable
@@ -9,7 +12,7 @@ from ..grids import Grid
 from .layout import Layout
 
 
-class GriddedLayoutGenerator():#
+class GriddedLayoutGenerator:#
     """GriddedLayoutGenerator This class takes care of procedurally generating layouts by iterating through different combinations of Grid parameters. All resulting layouts will be generated from a uniform grid. Can also take care of clipping layouts to buildable areas as well as avoiding exclusions if passed.
     """
     def __init__(self,
@@ -25,9 +28,9 @@ class GriddedLayoutGenerator():#
                  origins: list[tuple[float, float]] = [(0, 0)],
                  scales: Iterable[float] = np.arange(250, 251),
                  n_wtg: int | None = None,
-                 areas: list[Polygon | MultiPolygon] = None,
-                 exclusions: list[Polygon | MultiPolygon] = None
-                 ):
+                 areas: list[Polygon | MultiPolygon] | None = None,
+                 exclusions: list[Polygon | MultiPolygon] | None = None
+                 ) -> None:
         """__init__ Initialises the GriddedLayoutGenerator instance.
 
         Parameters
@@ -148,17 +151,16 @@ class GriddedLayoutGenerator():#
         
         This example shows how to create a GriddedLayoutGenerator instance and use it to automatically generate gridded layouts. This example will create layotus from a 20 by 20 grid, with row and column distances from 5 to 6 in steps of 0.25, angles from 0 to 90 in steps of 5 degrees, vertical shear angles from 0 to 45 in steps of 5 degrees, two different origins, and a scaling factor of 250.
         
-        A total of 8184 layouts have been automatically generated.
+        A total of 5184 layouts have been automatically generated.
         
-        Notes
-        -----
+        Note
+        ----
         When passing parameters that results in hundreds of thousands (or more!) of individual grids, performance can suffer. This generator is a work in progress and still under heay development.
         
         See Also
         --------
         layowt.layouts.layout.Layout : Layout object.
         layowt.grids.grid.Grid : Grid object.
-        GriddedLayoutGenerator : GriddedLayoutGenerator used to automatically generate layouts from grids.
         
         Warning
         --------
