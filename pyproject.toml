@@ -7,7 +7,7 @@ name = "layowt"
 description = "Multi-disciplinary Offshore Wind Farm Layout Optimisation in Python."
 authors = [{name = "Guillermo Tornero", email = "gtornerodediego@gmail.com"}]
 requires-python = ">=3.10"
-version = "0.0.2"
+version = "0.0.3"
 readme = "README.md"
 dependencies = [
     "matplotlib==3.5.1",
@@ -29,4 +29,6 @@ doc = [
     "furo",
     "nbsphinx",
     "sphinx-autoapi",
+    "sphinx-hoverxref",
+    "sphinx-copybutton",
 ]
