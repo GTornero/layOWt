@@ -3,8 +3,9 @@ to generate layouts."""
 
 import matplotlib.pyplot as plt
 import numpy as np
-from layowt.grids.utils import create_coords
 from shapely.geometry import MultiPoint, Point
+
+from .utils import create_coords
 
 
 class Grid:
@@ -137,7 +138,7 @@ class Grid:
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Array of [x,y] coordinate pairs of the points of the grid.
         """
         grid = create_coords(
@@ -164,7 +165,7 @@ class Grid:
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             1-D array of the x coordinates of the points in the grid.
         """
         return self.coords[:, 0]
@@ -175,7 +176,7 @@ class Grid:
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             1-D array of the y coordinates of the points in the grid.
         """
         return self.coords[:, 1]
@@ -187,7 +188,7 @@ class Grid:
 
         Parameters
         ----------
-        ax : plt.Axes | None, optional
+        ax : matplotlib.axes.Axes | None, optional
             Axes on which the grid points are drawn. If None, a new Figure and
             Axes object are created, by default None
         figsize : tuple, optional
@@ -195,13 +196,13 @@ class Grid:
 
         Returns
         -------
-        tuple[plt.Figure, plt.Axes]
+        tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
             Tuple of Figure and Axes objects
 
         Raises
         ------
         TypeError
-            The passed ax argument was not of type plt.Axes
+            The passed ax argument was not of type matplotlib.axes.Axes
         """
 
         if ax is None:
@@ -289,7 +290,7 @@ class Grid:
             )
 
     def rotate(self, angle: float, inplace: bool = False):
-        """rotate Rotate the
+        """rotate Rotate the Grid.
 
         Parameters
         ----------
@@ -322,17 +323,17 @@ class Grid:
 
     def to_multipoint(self) -> MultiPoint:
         """to_multipoint returns the Shapely.geometry.MultiPoint representation
-        of the Grid intance
+        of the Grid instance.
 
         Returns
         -------
-        shapely.geometry.multipoint.MultiPoint
+        MultiPoint
             Shapely MultiPoint representation of the grid geometry.
         """
         return MultiPoint(self.coords)
 
     def to_points(self) -> list[Point]:
-        """to_points2 This method returns the Grid instance geometries as a list
+        """to_points This method returns the Grid instance geometries as a list
         of shapely Point geometries.
 
         Returns
