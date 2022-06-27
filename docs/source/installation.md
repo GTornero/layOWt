@@ -68,11 +68,11 @@ Run the following command to update `pip`:
 (LayOWt-venv) python -m pip install -U pip
 ```
 
-## 3. Installing GDAL and Fiona Wheels
+## 3. Installing GDAL, Fiona, and Rasterio Wheels
 
-Installing the `GDAL` and `Fiona` packages for Python using `pip` is not as easy as it may seem. These packages are actually C++ libraries with Python bindings. Therefore, in order to be installed correctly, the underlying C++ code must be  built/compiled prior to be used with Python.
+Installing the `GDAL`, `Fiona`, and `Rasterio` packages for Python using `pip` is not as easy as it may seem. These packages are actually C++ libraries with Python bindings. Therefore, in order to be installed correctly, the underlying C++ code must be  built/compiled prior to be used with Python.
 
-Luckily, the binaries for both `GDAL` and `Fiona` can be found [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal).
+Luckily, the binaries for `GDAL`, `Fiona`, and `Rasterio` can be found [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal).
 Select the correct versions for your Python version and download the .whl files.
 
 Open the terminal using the LayOWt Virtual Environment and install the binaries using `pip`.
@@ -87,9 +87,15 @@ Then install `Fiona`:
 (LayOWt-venv) pip install [path/to/whl]/Fiona-1.8.21-cp310-cp310-win_amd64.whl
 ```
 
+Finally install `Rasterio`:
+
+```console
+(LayOWt-venv) pip install [path/to/whl]/rasterio-1.2.10-cp310-cp310-win_amd64
+```
+
 ## 4. Download LayOWt from [GitHub](https://github.com/GTornero/layOWt)
 
-Make sure you download/clone the latest version.
+Make sure you download/clone the latest stable version from the main branch.
 
 ## 5. Install LayOWt Using `pip`
 
@@ -113,5 +119,4 @@ If you wish to install the LayOWt package in editable mode, you can run:
 
 ```console
 (LayOWt-venv) pip install -e .[doc]
-```
 ```
