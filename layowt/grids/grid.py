@@ -18,6 +18,36 @@ class Grid:
     Multiple numerical and graphical methods are available to manipulate the grid
     and to visualise the coordinates.
 
+    Parameters
+    ----------
+    n_rows : int, optional
+        Number of rows of points in the Grid, by default 10.
+    n_cols : int, optional
+        Number of columns of points in the Grid, by default 10.
+    row_step : float, optional
+        Non-dimensional distance between rows, by default 6.
+    col_step : float, optional
+        Non-dimensional distance between columns, by default 6.
+    row_offset : bool, optional
+        Offset every other row by half row_step to create a diamond shaped
+        grid, by default False.
+    col_offset : bool, optional
+        Offset every other column by half col_step to create a diamond
+        shaped grid, by default False.
+    angle : float, optional
+        Angle of orientation of the grid columns in degrees. Clockwise
+        convention used to match wind direction convention, by default 0.
+    x_shear : float | None, optional
+        Horizontal shear angle of the grid in degrees. Defines the angle of
+        the columns from vertical clockwise, by default None.
+    y_shear : float | None, optional
+        Vertical shear angle of the grid in degrees. Defines the angle of the
+        rows from the horizontal anticlockwise, by default None.
+    origin : tuple, optional
+        (x,y) coordinate pair of the centroid of the grid, by default (0, 0).
+    scale : float, optional
+        Factor by which to convert the non-dimensional row_step and col_step
+        distances into the real space, by default 1.
     """
 
     def __init__(
@@ -34,38 +64,7 @@ class Grid:
         origin: tuple = (0, 0),
         scale: float = 1,
     ) -> None:
-        """__init__ Initialise the Grid instance.
-
-        Parameters
-        ----------
-        n_rows : int, optional
-            Number of rows of points in the Grid, by default 10
-        n_cols : int, optional
-            Number of columns of points in the Grid, by default 10
-        row_step : float, optional
-            Non-dimensional distance between rows, by default 6
-        col_step : float, optional
-            Non-dimensional distance between columns, by default 6
-        row_offset : bool, optional
-            Offset every other row by half row_step to create a diamond shaped
-            grid, by default False
-        col_offset : bool, optional
-            Offset every other column by half col_step to create a diamond
-            shaped grid, by default False
-        angle : float, optional
-            Angle of orientation of the grid columns in degrees. Clockwise
-            convention used to match wind direction convention, by default 0
-        x_shear : float | None, optional
-            Horizontal shear angle of the grid in degrees. Defines the angle of
-            the columns from vertical clockwise, by default None
-        y_shear : float | None, optional
-            Vertical shear angle of the grid in degrees. Defines the angle of the
-            rows from the horizontal anticlockwise, by default None
-        origin : tuple, optional
-            (x,y) coordinate pair of the centroid of the grid, by default (0, 0)
-        scale : float, optional
-            Factor by which to convert the non-dimensional row_step and col_step
-            distances into the real space, by default 1
+        """__init__ Initialise the Grid instance.        
         """
         self.n_rows = n_rows
         self.n_cols = n_cols
