@@ -5,12 +5,12 @@
 
 # About
 
-**Documentation:** [ReadtheDocs](https://layowt.readthedocs.io/en/stable/)
+**Documentation:** [ReadTheDocs](https://layowt.readthedocs.io/en/stable/)
 [![Documentation Status](https://readthedocs.org/projects/layowt/badge/?version=latest)](https://layowt.readthedocs.io/en/latest/?badge=latest)
 
 **License:** N/A
 
-**Support:** N/A
+**Support:** [Contact Us](mailto:guillermo.tornero@oceanwinds.com)
 
 **layOWt** is a Python library aimed at performing multi-disciplinary
 layout optimisation of offshore wind farms considering topics such as:
