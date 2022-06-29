@@ -7,13 +7,21 @@ from scipy.integrate import simpson
 
 def weibull_aep(wt: WindTurbine, weibull_a: float, weibull_k: float, units: str = "GWh"):
     """weibull_aep This function calculates the gross AEP using a py_wake WindTurbine and a Weibull distribution. The method integrates the result of dicrete function resulting from the multiplication of the WindTurbine power curve and the 2-parameter Weibull probability density function. The integration is carried out using Simpon's rule as implemented in Scipy.integrate.simpson. The calculted AEP can be reported in Wh, kWh, MWh, and GWh.
+    
+    .. math::
+        aep = \\displaystyle \\int_{cut-in}^{cut-out} P(ws)PC(ws) dws
 
+    Where the Weibull distribution Probability Density Function is given by:
+    
+    .. math::
+        P(ws) = \\frac{k}{A}\\left(\\frac{ws}{A}\\right)^{k-1}e^{-(\\frac{ws}{A})^k}
+        
     Parameters
     ----------
     wt : WindTurbine
         py_wake WindTurbine object. This object contains all of the turbine specifications such as power and Ct vs wind speed curves, rotor size, etc.
     weibull_a : float
-        The 2-parameter Weibull scale parameter. The
+        The 2-parameter Weibull scale parameter.
     weibull_k : float
         The 2-parameter Weibull shape parameter.
     units : str, optional
