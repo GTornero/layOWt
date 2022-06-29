@@ -46,7 +46,10 @@ extensions = [
     "nbsphinx", # can also use MyST-NB
     "hoverxref.extension",
     "sphinx_copybutton",
+    "sphinx.ext.mathjax",
 ]
+
+myst_enable_extensions = ["dollarmath", "amsmath"]
 
 autosummary_generate = True
 
@@ -112,6 +115,8 @@ hoverxref_role_types = {
 html_theme = 'furo'
 
 html_logo = '../../img/logo_small.png'
+
+html_favicon = '../../img/favicon.ico'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
