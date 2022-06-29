@@ -1,5 +1,5 @@
 """This module contains the Layout class which is the basic data structure used
-to define project scenarios."""
+to define project scenario geometries."""
 
 import copy
 
@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyproj
+import rasterio
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from py_wake.wind_turbines import WindTurbine
 from shapely.geometry import (MultiPoint, MultiPolygon, Point, Polygon,
@@ -20,15 +22,32 @@ from ..grids import Grid
 
 
 class Layout:
-    """Layout class.
-
+    """
     This class is responsible for holding all of the data structures required
     in order to define a project scenario and to generate the coordinate pairs
     of the points that make up the grid.
 
     Multiple numerical, spatial and graphical methods are available to
     manipulate the scenario o conform to constraint and set properties.
-
+    
+    Parameters
+    ----------
+    grid : Grid | None, optional
+        Grid object used to define the Layout, by default None.
+    areas : list[Polygon  |  MultiPolygon] | None, optional
+        List of Shapely Polygons or MultiPolygons used to define the lease
+        areas, by default None.
+    exclusions : list[Polygon  |  MultiPolygon] | None, optional
+        List of Shapely Polygons or MultiPolygons used to define exclusion
+        zones where turbines cannot be placed, by default None.
+    wtg : str
+        Filepath for the .wtg file to load, by default None.
+    
+    See Also
+    --------
+    Polygon : Shapely Polygon object.
+    MultiPolygon : Shapely MultiPolygon object.
+    py_wake.wind_turbines.WindTurbines : Set of multiple py_wake wind turbines.
     """
 
     def __init__(
@@ -39,19 +58,12 @@ class Layout:
         wtg: str | None = None,
     ) -> None:
         """__init__ Initialises the Layout class instance.
-
-        Parameters
-        ----------
-        grid : Grid | None, optional
-            Grid object used to define the Layout, by default None
-        areas : list[Polygon  |  MultiPolygon] | None, optional
-            List of Shapely Polygons or MultiPolygons used to define the lease
-            areas, by default None
-        exclusions : list[Polygon  |  MultiPolygon] | None, optional
-            List of Shapely Polygons or MultiPolygons used to define exclusion
-            zones where turbines cannot be placed, by default None
         """
         self.grid = grid
+        self.bathymetry_path = None
+        self.bathymetry_limits = None
+        self.bathymetry_sign = None
+        self.bathymetry_drop_na = None
 
         if grid is not None:
             self.geom = self.grid.to_multipoint()  # type: ignore
@@ -85,7 +97,7 @@ class Layout:
     @classmethod
     def from_shapefile(cls, filepath: str) -> "Layout":
         """from_shapefile Alternate constructor to read a shapefile into a Layout object.
-        The shapefile must contain Point or 3DMultiPoint geometry to be a valid Layout constructor.
+        The shapefile must contain Point or MultiPoint geometry to be a valid Layout constructor.
 
         Parameters
         ----------
@@ -196,12 +208,12 @@ class Layout:
         return layout
 
     def is_constrained(self) -> bool:
-        """is_constrained Boolean test if the layout is constrained by areas or exclusions.
+        """is_constrained Boolean test if the layout is constrained by areas, exclusions or bathymetry.
 
         Returns
         -------
         bool
-            True if the layout is constrained by areas of exclusion geometries. False otherwise.
+            True if the layout is constrained by areas, exclusion or bathymetry. False otherwise.
         """
         return self._constrained
 
@@ -234,6 +246,16 @@ class Layout:
             True if the layout has exclusions. False otherwise.
         """
         return self.exclusion is not None
+
+    def has_bathymetry(self) -> bool:
+        """has_bathymetry Test if the layout has a loaded bathymetry.
+
+        Returns
+        -------
+        bool
+            True if the layout has a loaded bathymetry. False otherwise.
+        """
+        return self.bathymetry_path is not None
 
     def clip_to_area(self, areas: list[Polygon | MultiPolygon], mode="a") -> "Layout":
         """clip_to_area Clips the layout geometry to the passed area geometries.
@@ -340,8 +362,142 @@ class Layout:
 
         return self
 
+    def load_bathymetry(self,
+                        filepath: str,
+                        sign: str = '-',
+                        band: int = 1,
+                        limits: tuple[float, float] = (0., 60.),
+                        drop_na: bool = False
+    ) -> "Layout":
+        """load_bathymetry Loads bathymetry data, stores the path, limits, and sign, and removes any invalid positions.
+
+        Parameters
+        ----------
+        filepath : str
+            filepath of the bathymetry raster to load. Must be a format supported by the rasterio.open function.
+        sign : str, optional
+            sign in which the bathymetry file represents water depths. By default '-' if bathymetry values are negative. Pass '+' if bathymetry values are positive.
+        band : int, optional
+            Band number of the raster file containing bathymetry data, by default 1. Following the GDAL convention, bands are indexed from 1.
+        limits : tuple[float, float], optional
+            Minimum and maximum bathymetry values, in the raster file units, for layout positions to be considered valid, by default (0., 60.).
+        drop_na : bool, optional
+            If True, consider layout positions with nan values as invalid. By default False.
+
+        Returns
+        -------
+        Layout
+            Layout with invalid bathymetry positions removed.
+
+        Raises
+        ------
+        ValueError
+            If sign is not '-' or '+'.
+        
+        See Also
+        --------
+        rasterio.open : Rasterio function for opening datasets.
+        """
+        if sign not in ["-", "+"]:
+            raise ValueError(f"sign must be '-' or '+'. Value of {sign=} passed.")
+        
+        if not self._constrained:
+            self._constrained = True
+        
+        SIGN = {'-': -1, '+': 1}[sign]
+        
+        with rasterio.open(filepath, mode='r') as src:
+            samples = [sample[0]*SIGN for sample in src.sample(self.coords, indexes=band)]
+            
+        valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
+        
+        self.geom = unary_union(valid_points)
+        self.bathymetry_path = filepath
+        self.bathymetry_sign = sign
+        self.bathymetry_limits = limits
+        self.bathymetry_drop_na = drop_na
+            
+        return self
+
+    def apply_bathymetry(self,
+                        dataset: rasterio.io.DatasetReader,
+                        sign: str = '-',
+                        band: int = 1,
+                        limits: tuple[float, float] = (0., 60.),
+                        drop_na: bool = False) -> "Layout":
+        """apply_bathymetry Alternative method to apply minimum and maximum bathymetry limits to a Layout. This method takes in an open rasterio.IO.DatasetReader object. More efficient than Layout.load_bathymetry if applied within loops as this method avoids opening and closing the raster data file on every iteration.
+
+        Parameters
+        ----------
+        dataset : rasterio.io.DatasetReader
+            A rasterio.io.DatasetReader object in an open state.
+        sign : str, optional
+            sign in which the bathymetry file represents water depths. By default '-' if bathymetry values are negative. Pass '+' if bathymetry values are positive.
+        band : int, optional
+            Band number of the raster file containing bathymetry data, by default 1. Following the GDAL convention, bands are indexed from 1.
+        limits : tuple[float, float], optional
+            Minimum and maximum bathymetry values, in the raster file units, for layout positions to be considered valid, by default (0., 60.).
+        drop_na : bool, optional
+            If True, consider layout positions with nan values as invalid. By default False.
+
+        Returns
+        -------
+        Layout
+            Layout with invalid bathymetry positions removed.
+
+        Raises
+        ------
+        IOError
+            If dataset is in a closed state.
+        ValueError
+            If sign is not '-' or '+'.
+        
+        See Also
+        --------
+        rasterio.open : Rasterio function for opening datasets.
+        rasterio.io.DatasetReader : A rasterio unbuffered data and metadata reader.
+        
+        Examples
+        --------
+        This examples shows how to open a raster file using rasterio, create a layout, and apply bathymetry constraints to the layout.
+        
+        >>> import rasterio
+        >>> from layowt.grids import Grid
+        >>> from layowt.layouts import Layout, geoms_from_shapefile
+        >>> areas = geoms_from_shapefile('area.shp')
+        >>> exclusions = geoms_from_shapefile('exclusions.shp')
+        >>> grid = Grid(n_rows=40, n_cols=40, origin=(areas[0].centroid.x, areas[0].centroid.y), scale=236)
+        >>> layout = Layout(grid, areas=areas, exclusions=exclusions)
+        >>> with rasterio.open("bathymetry.tif") as dataset:
+            >>> layout.apply_bathymetry(dataset, limits=(0, 56))
+        >>> layout.plot(ax=ax, show_bathy=True)
+        
+        .. image:: ../../../../_static/Layout_apply_bathymetry_example1.png
+        """
+        if dataset.closed:
+            raise IOError("Bathymetry dataset is closed.")
+        
+        if sign not in ["-", "+"]:
+            raise ValueError(f"sign must be '-' or '+'. Value of {sign=} passed.")
+        
+        if not self._constrained:
+            self._constrained = True
+        
+        SIGN = {'-': -1, '+': 1}[sign]
+        
+        samples = [sample[0]*SIGN for sample in dataset.sample(self.coords, indexes=band)]
+            
+        valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
+        
+        self.geom = unary_union(valid_points)
+        self.bathymetry_sign = sign
+        self.bathymetry_limits = limits
+        self.bathymetry_drop_na = drop_na
+        
+        return self
+
     def reset_area(self) -> "Layout":
-        """reset_area Removes any area constraints from the Layout object. Recovers any geometries that were lost due to the area constraint. Maintains any existing exclusion constraints.
+        """reset_area Removes any area constraints from the Layout object. Recovers any geometries that were lost due to the area constraint. Maintains any existing exclusion and bathymetry constraints.
 
         Returns
         -------
@@ -351,14 +507,19 @@ class Layout:
         if self.has_area():
             self.area = None
             if self.has_geom():
+                self.geom = self._raw_geom
                 if self.has_exclusion():
-                    self.geom = self._raw_geom.difference(self.exclusion)  # type: ignore
-                else:
-                    self.geom = self._raw_geom
+                    self.avoid_exclusions(self.exclusion)  # type: ignore
+                if self.has_bathymetry():
+                    self.load_bathymetry(
+                        filepath=self.bathymetry_path,
+                        limits=self.bathymetry_limits,
+                        sign=self.bathymetry_sign,
+                        drop_na=self.bathymetry_drop_na)
         return self
 
     def reset_exclusion(self) -> "Layout":
-        """reset_exclusion Removes any exclusion constraints from the Layout object. Recovers any geometries that were lost due to the exclusion constraint. Maintaints any existing area constraints.
+        """reset_exclusion Removes any exclusion constraints from the Layout object. Recovers any geometries that were lost due to the exclusion constraint. Maintaints any existing area and bathymetry constraints.
 
         Returns
         -------
@@ -367,11 +528,43 @@ class Layout:
         """
         if self.has_exclusion():
             self.exclusion = None
+            self._constrained = False
             if self.has_geom():
+                self.geom = self._raw_geom
                 if self.has_area():
-                    self.geom = self._raw_geom.intersection(self.area)  # type: ignore
-                else:
-                    self.geom = self._raw_geom
+                    self.clip_to_area(self.area)  # type: ignore
+                    self._constrained = True
+                if self.has_bathymetry():
+                    self.load_bathymetry(
+                        filepath=self.bathymetry_path,
+                        limits=self.bathymetry_limits,
+                        sign=self.bathymetry_sign,
+                        drop_na=self.bathymetry_drop_na)
+                    self._constrained = True
+        return self
+
+    def reset_bathymetry(self) -> "Layout":
+        """reset_bathymetry Removes any bathymetry constraints from the Layout object. Recovers any geometries that were lost due to the bathymetry constraint. Maintains any existing area and exclusion constraints.
+
+        Returns
+        -------
+        Layout
+            Layout without any bathymetry constraints.
+        """
+        if self.has_bathymetry():
+            self.bathymetry_path = None
+            self.bathymetry_limits = None
+            self.bathymetry_sign = None
+            self.bathymetry_drop_na = None
+            self._constrained = False
+        if self.has_geom():
+            self.geom = self._raw_geom
+            if self.has_area():
+                self.clip_to_area(self.area)
+                self._constrained = True
+            if self.has_exclusion():
+                self.avoid_exclusions(self.exclusion)
+                self._constrained = True
         return self
 
     def reset_geom(self) -> "Layout":
@@ -387,6 +580,9 @@ class Layout:
             self._constrained = False
             self.area = None
             self.exclusion = None
+            self.bathymetry_path = None
+            self.bathymetry_limits = None
+            self.bathymetry_sign = None
         return self
 
     @property
@@ -437,26 +633,32 @@ class Layout:
         return len(self.geom.geoms)  # type: ignore
 
     def plot(
-        self, ax: plt.Axes | None = None, figsize: tuple = (8, 6)
-    ) -> tuple[Figure, plt.Axes]:
+        self, ax: Axes | None = None, figsize: tuple = (8, 6), show_bathy: bool = False
+    ) -> tuple[Figure, Axes]:
         """plot Plots the Layout geometry, as well as areas and exclusions.
 
         Parameters
         ----------
-        ax : plt.Axes | None, optional
+        ax : matplotlib.axes.Axes | None, optional
             Axes on which the Layout is drawn. If None, a new Figure and Axes are created, by default None.
         figsize : tuple, optional
             Figure size in inches in (width, height) format, by default (8, 6)
+        show_bathy : bool, optional
+            If True, render the bathymetry onto the plot. Layout must have a loaded bathymetry filepath.
 
         Returns
         -------
-        tuple[Figure, plt.Axes]
+        tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
             Tuple of Figure and Axes objects
 
         Raises
         ------
         TypeError
-            The passed ax argument was not of type plt.Axes
+            The passed ax argument was not of type Axes
+        
+        Caution
+        ----
+        Performance can be seriously reduced if show_bathy is set to true and high resolution bathymetry data is to be rendered.
         """
         # TODO: Update this method to use GeoPandas for easier plotting.
         if ax is None:
@@ -469,6 +671,12 @@ class Layout:
                     f"Invalid type in {type(ax)} for the 'ax' argument, "
                     f"must be Matplotlib Axes object."
                 )
+        
+        if show_bathy and self.bathymetry_path is not None:
+            with rasterio.open(self.bathymetry_path, mode='r') as src:
+                rasterio.plot.show(src, ax=ax, alpha=0.5)
+                plt.colorbar(mappable=ax.get_images()[0], ax=ax)
+        
         # Plots the points of the valid turbines
         ax.scatter(self.x, self.y, color="g")
 
@@ -515,6 +723,10 @@ class Layout:
         Returns
         -------
         None
+        
+        See Also
+        --------
+        py_wake.wind_turbines.WindTurbines : Set of multiple py_wake wind turbines.
         """
         self.wtg = WindTurbine.from_WAsP_wtg(file)
         return None
@@ -575,3 +787,26 @@ class Layout:
         """
         # TODO write method to save layout as a PostGIS table.
         raise NotImplementedError("Method not yet implemented.")
+
+
+def _valid_sample(sample: float, limits: tuple[float, float], drop_na: bool) -> bool:
+    """_valid_sample helper function used to validate bathymetry sample points.
+
+    Parameters
+    ----------
+    sample : float
+        Sampled value from the bathymetry raster.
+    limits : tuple[float, float]
+        tuple of (min, max) acceptable bathymetry values as positive integers.
+    drop_na : bool
+        If True, regards nan samples as invalid. If False, keeps positions with non samples.
+
+    Returns
+    -------
+    bool
+        If a bathymetry sample is valid or not.
+    """
+    if drop_na:
+        return (sample >= limits[0]) and (sample <= limits[1])
+    else:
+        return ((sample >= limits[0]) and (sample <= limits[1]) or sample is np.nan)
