@@ -6,6 +6,7 @@ from itertools import product
 from typing import Iterable
 
 import numpy as np
+import rasterio
 from shapely.geometry import MultiPolygon, Polygon
 
 from ..grids import Grid
@@ -14,6 +15,47 @@ from .layout import Layout
 
 class GriddedLayoutGenerator:#
     """GriddedLayoutGenerator This class takes care of procedurally generating layouts by iterating through different combinations of Grid parameters. All resulting layouts will be generated from a uniform grid. Can also take care of clipping layouts to buildable areas as well as avoiding exclusions if passed.
+    
+    Parameters
+    ----------
+    n_rows : int, optional
+        Number of grid rows, by default 10.
+    n_cols : int, optional
+        Number of grid columns, by default 10.
+    row_steps : Iterable[float], optional
+        An iterable with the non-dimensional row distances to iterate through when creating gridded layouts, by default np.arange(5,10.5, 0.5).
+    col_steps : Iterable[float], optional
+        An iterable with the non-dimensional column distances to iterate through when creating gridded layouts, by default np.arange(5,10.5, 0.5).
+    row_offset : bool, optional
+        Offset every other row by half row_step to create a diamond shaped grid. Cannot be True when col_offset is also True. By default False.
+    col_offset : bool, optional
+        Offset every other column by half row_step to create a diamond shaped grid. Cannot be True when row_offset is also True. By default False.
+    angles : Iterable[float], optional
+        An iterable of angles in degrees to iterate through when creating gridded layouts, by default np.arange(0, 1).
+    x_shears : Iterable[float], optional
+        An iterable of vertical shear angles in degrees to iterate through when creating gridded layouts, by default np.arange(0, 1).
+    y_shears : Iterable[float], optional
+        An iterable of horizontal shear angles in degrees to iterate through when creating gridded layouts, by default np.arange(0, 1).
+    origins : list[tuple[float, float]], optional
+        A list of (x, y) tuple coordinate pairs to set the grid origin. Will iterate over all Grid parameters at for all grid origins, by default [(0, 0)].
+    scales : Iterable[float], optional
+        An iterable of factors by which to convert the non-dimensional Grid distances into the real space. Will iterate over all passed scales for all Grid parameters. By default np.arange(250, 251).
+    n_wtg : int | None, optional
+        Target number of valid layout positions. Used to filter only the resulting Layouts with the desired number of positions. By default None.
+    areas : list[Polygon  |  MultiPolygon], optional
+        List of Shapely Polygons or MultiPolygons used to define the buildable areas. The generator wll take care to clip all layout positions to these areas. By default None.
+    exclusions : list[Polygon  |  MultiPolygon], optional
+        List of Shapely Polygons or MultiPolygons used to define exclusion zones where layout positions cannot be placed. The generator will take care to remove any layout positions that fall within these exclusion areas. By default None.
+    bathymetry_path : str
+        filepath of the bathymetry raster to load. Must be a format supported by the rasterio.open function.
+    bathymetry_sign : str, optional
+        sign in which the bathymetry file represents water depths. By default '-' if bathymetry values are negative. Pass '+' if bathymetry values are positive.
+    bathymetry_band : int, optional
+        Band number of the raster file containing bathymetry data, by default 1. Following the GDAL convention, bands are indexed from 1.
+    bathymetry_limits : tuple[float, float], optional
+        Minimum and maximum bathymetry values, in the raster file units, for layout positions to be considered valid, by default (0., 60.).
+    bathymetry_drop_na : bool, optional
+        If True, consider layout positions with nan values as invalid. By default False.
     """
     def __init__(self,
                  n_rows: int = 10,
@@ -29,40 +71,14 @@ class GriddedLayoutGenerator:#
                  scales: Iterable[float] = np.arange(250, 251),
                  n_wtg: int | None = None,
                  areas: list[Polygon | MultiPolygon] | None = None,
-                 exclusions: list[Polygon | MultiPolygon] | None = None
+                 exclusions: list[Polygon | MultiPolygon] | None = None,
+                 bathymetry_path: str | None = None,
+                 bathymetry_sign: str = "-",
+                 bathymetry_band: int = 1,
+                 bathymetry_limits: tuple[float, float] = (0., 60.),
+                 bathymetry_drop_na: bool = False
                  ) -> None:
         """__init__ Initialises the GriddedLayoutGenerator instance.
-
-        Parameters
-        ----------
-        n_rows : int, optional
-            Number of grid rows, by default 10
-        n_cols : int, optional
-            Number of grid columns, by default 10
-        row_steps : Iterable[float], optional
-            An iterable with the non-dimensional row distances to iterate through when creating gridded layouts, by default np.arange(5,10.5, 0.5)
-        col_steps : Iterable[float], optional
-            An iterable with the non-dimensional column distances to iterate through when creating gridded layouts, by default np.arange(5,10.5, 0.5)
-        row_offset : bool, optional
-            Offset every other row by half row_step to create a diamond shaped grid. Cannot be True when col_offset is also True. By default False
-        col_offset : bool, optional
-            Offset every other column by half row_step to create a diamond shaped grid. Cannot be True when row_offset is also True. By default False
-        angles : Iterable[float], optional
-            An iterable of angles in degrees to iterate through when creating gridded layouts, by default np.arange(0, 1)
-        x_shears : Iterable[float], optional
-            An iterable of vertical shear angles in degrees to iterate through when creating gridded layouts, by default np.arange(0, 1)
-        y_shears : Iterable[float], optional
-            An iterable of horizontal shear angles in degrees to iterate through when creating gridded layouts, by default np.arange(0, 1)
-        origins : list[tuple[float, float]], optional
-            A list of (x, y) tuple coordinate pairs to set the grid origin. Will iterate over all Grid parameters at for all grid origins, by default [(0, 0)]
-        scales : Iterable[float], optional
-            An iterable of factors by which to convert the non-dimensional Grid distances into the real space. Will iterate over all passed scales for all Grid parameters. By default np.arange(250, 251)
-        n_wtg : int | None, optional
-            Target number of valid layout positions. Used to filter only the resulting Layouts with the desired number of positions. By default None
-        areas : list[Polygon  |  MultiPolygon], optional
-            List of Shapely Polygons or MultiPolygons used to define the buildable areas. The generator wll take care to clip all layout positions to these areas. By default None
-        exclusions : list[Polygon  |  MultiPolygon], optional
-            List of Shapely Polygons or MultiPolygons used to define exclusion zones where layout positions cannot be placed. The generator will take care to remove any layout positions that fall within these exclusion areas. By default None
         """
         instructions = OrderedDict(
             {
@@ -83,6 +99,11 @@ class GriddedLayoutGenerator:#
         self.n_wtg = n_wtg
         self.areas = areas
         self.exclusions = exclusions
+        self.bathymetry_path = bathymetry_path
+        self.bathymetry_sign = bathymetry_sign
+        self.bathymetry_band = bathymetry_band
+        self.bathymetry_limits = bathymetry_limits
+        self.bathymetry_drop_na = bathymetry_drop_na
 
     def _combinations(self):
         """_combinations Private helper method used to generate the different combinations of Grid parameters used to construct individual Grid objects.
@@ -94,9 +115,9 @@ class GriddedLayoutGenerator:#
         """
         instructions = []
         
-        for k, v in self._grid_instructions.items():
-            if k not in ["n_rows", "n_cols", "row_offset", "col_offset"]:
-                instructions.append(v)
+        for key, val in self._grid_instructions.items():
+            if key not in ["n_rows", "n_cols", "row_offset", "col_offset"]:
+                instructions.append(val)
                 
         for instruction in product(*instructions):
             yield instruction
@@ -168,12 +189,23 @@ class GriddedLayoutGenerator:#
         """
         layouts = []
         grid_gen = self._grid_generator()
+        # TODO work on creating a parallel compution option for this function.
         for grid in grid_gen:
             layout = Layout(grid, areas=self.areas, exclusions=self.exclusions)
+            
+            if self.bathymetry_path is not None:
+                with rasterio.open(self.bathymetry_path, mode='r') as dataset:
+                    layout.apply_bathymetry(dataset,
+                                            sign=self.bathymetry_sign,
+                                            band=self.bathymetry_band,
+                                            limits=self.bathymetry_limits,
+                                            drop_na=self.bathymetry_drop_na
+                                            )
+                    layout.bathymetry_path = self.bathymetry_path
+                
             if self.n_wtg is None:
                 layouts.append(layout)
             elif layout.n_wtg == self.n_wtg:
                 layouts.append(layout)
         
         return layouts
-    
