@@ -13,6 +13,7 @@ import rasterio
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from py_wake.wind_turbines import WindTurbine
+from rasterio.plot import show
 from shapely.geometry import (MultiPoint, MultiPolygon, Point, Polygon,
                               mapping, shape)
 from shapely.ops import unary_union
