@@ -3,8 +3,12 @@
 
 import fiona
 import geopandas as gp
+import numpy as np
+import pandas as pd
 from shapely.geometry import shape
 from sqlalchemy import create_engine
+
+from .layout import Layout
 
 
 def geoms_from_shapefile(filepath: str) -> list:
@@ -71,3 +75,25 @@ def geoms_from_postgis(
     geoms = list(data[geom_col])
 
     return geoms
+
+
+def layouts_to_legacy_csv(layouts: list[Layout], filepath: str = "layouts.csv") -> None:
+    """layouts_to_legacy_csv Function for backwards compatibility with legacy multitech code. Exports a lists of layout coordiantes into a .csv file compatible with legacy style OW jupyter notebook codes.
+    
+    Will be removed in future versions.
+
+    Parameters
+    ----------
+    layouts : list[Layout]
+        A list of Layout objects.
+    filepath : str
+        Filepath of the csv to write, by default "layouts.csv".
+    """
+    layout_data = []
+    for i, layout in enumerate(layouts):
+        layout_data += list(zip(np.ones(layout.n_wtg)*i, layout.x, layout.y))
+        
+    layout_df = pd.DataFrame(layout_data)
+    layout_df[3] = 1
+    layout_df.columns = ["id", "X", "Y", "center"]
+    layout_df.to_csv(filepath, index=False)
