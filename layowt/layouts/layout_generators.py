@@ -189,12 +189,12 @@ class GriddedLayoutGenerator:#
         """
         layouts = []
         grid_gen = self._grid_generator()
-        # TODO work on creating a parallel compution option for this function.
-        for grid in grid_gen:
-            layout = Layout(grid, areas=self.areas, exclusions=self.exclusions)
-            
-            if self.bathymetry_path is not None:
-                with rasterio.open(self.bathymetry_path, mode='r') as dataset:
+        # TODO work on creating a parallel/multithreaded compution option for this function.
+        if self.bathymetry_path is not None:
+            with rasterio.open(self.bathymetry_path, mode='r') as dataset:
+                for grid in grid_gen:
+                    layout = Layout(grid, areas=self.areas, exclusions=self.exclusions)
+                    
                     layout.apply_bathymetry(dataset,
                                             sign=self.bathymetry_sign,
                                             band=self.bathymetry_band,
@@ -202,10 +202,18 @@ class GriddedLayoutGenerator:#
                                             drop_na=self.bathymetry_drop_na
                                             )
                     layout.bathymetry_path = self.bathymetry_path
-                
-            if self.n_wtg is None:
-                layouts.append(layout)
-            elif layout.n_wtg == self.n_wtg:
-                layouts.append(layout)
+                        
+                    if self.n_wtg is None:
+                        layouts.append(layout)
+                    elif layout.n_wtg == self.n_wtg:
+                        layouts.append(layout)
+        else:
+            for grid in grid_gen:
+                layout = Layout(grid, areas=self.areas, exclusions=self.exclusions)
+                    
+                if self.n_wtg is None:
+                    layouts.append(layout)
+                elif layout.n_wtg == self.n_wtg:
+                    layouts.append(layout)
         
         return layouts
