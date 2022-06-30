@@ -90,10 +90,16 @@ def layouts_to_legacy_csv(layouts: list[Layout], filepath: str = "layouts.csv") 
         Filepath of the csv to write, by default "layouts.csv".
     """
     layout_data = []
+    layout_info = []
     for i, layout in enumerate(layouts):
         layout_data += list(zip(np.ones(layout.n_wtg)*i, layout.x, layout.y))
+        layout_info.append([i, layout.grid.angle, layout.grid.row_step, layout.grid.col_step])
         
     layout_df = pd.DataFrame(layout_data)
     layout_df[3] = 1
     layout_df.columns = ["id", "X", "Y", "center"]
     layout_df.to_csv(filepath, index=False)
+    
+    layout_info_df = pd.DataFrame(layout_info)
+    layout_info_df.columns = ["id", "angle", "row", "col"]
+    layout_info_df.to_csv("INFO_" + filepath, index=False)
