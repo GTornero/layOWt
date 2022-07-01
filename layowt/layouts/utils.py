@@ -5,19 +5,23 @@ import fiona
 import geopandas as gp
 import numpy as np
 import pandas as pd
+import pyproj
 from shapely.geometry import shape
+from shapely.ops import transform
 from sqlalchemy import create_engine
 
 from .layout import Layout
 
 
-def geoms_from_shapefile(filepath: str) -> list:
-    """geoms_from_shapefile loads shapely geometry objects from a shapefile.
+def geoms_from_shapefile(filepath: str, target_epsg: int | None = None) -> list:
+    """geoms_from_shapefile loads shapely geometry objects from a shapefile. Can reproject geometries on the fly from the source CRS into the desired CRS defined by its EPSG code in the optional target_epsg argument.
 
     Parameters
     ----------
     filepath : str
         filepath of the shapefile to load.
+    target_epsg : int | None, optional
+        EPSG code of the target projection for the geometries to be loaded in. By default, None.
 
     Returns
     -------
@@ -25,8 +29,20 @@ def geoms_from_shapefile(filepath: str) -> list:
         list of shapely geometries contained in the shapefile.
     """
     with fiona.open(filepath) as src:
-        areas = [shape(rec["geometry"]) for rec in src]
-    return areas
+        geoms = [shape(rec["geometry"]) for rec in src]
+        src_crs = pyproj.CRS(src.crs)
+        
+    if target_epsg is not None:
+        target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+        crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
+        transformed_geoms = []
+        for geom in geoms:
+            transformed_geom = transform(crs_transformer.transform, geom)
+            transformed_geoms.append(transformed_geom)
+            
+        geoms = transformed_geoms
+        
+    return geoms
 
 
 def geoms_from_postgis(
@@ -36,7 +52,8 @@ def geoms_from_postgis(
     table: str,
     host: str = "ow-postgre.postgres.database.azure.com",
     db_name: str = "corp_ta_ea",
-    geom_col="geom",
+    geom_col: str = "geom",
+    target_epsg: int | None = None,
     **kwargs,
 ) -> list:
     """geoms_from_postgis loads a list of shapely geometry objects from a PostGIS table.
@@ -57,6 +74,8 @@ def geoms_from_postgis(
         name of the PostGIS database within the hose, by default "corp_ta_ea"
     geom_col : str, optional
         name of the geometry column within the table, by default "geom"
+    target_epsg : int | None, optional
+        EPSG code of the target projection for the geometries to be loaded in. By default, None.
 
     Returns
     -------
@@ -72,8 +91,20 @@ def geoms_from_postgis(
         geom_col=geom_col,
         **kwargs,
     )
+    
     geoms = list(data[geom_col])
-
+    
+    if target_epsg is not None:
+        src_crs = data.crs
+        target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+        crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
+        transformed_geoms = []
+        for geom in geoms:
+            transformed_geom = transform(crs_transformer.transform, geom)
+            transformed_geoms.append(transformed_geom)
+        
+        geoms = transformed_geoms
+    
     return geoms
 
 
