@@ -16,7 +16,7 @@ from py_wake.wind_turbines import WindTurbine
 from rasterio.plot import show
 from shapely.geometry import (MultiPoint, MultiPolygon, Point, Polygon,
                               mapping, shape)
-from shapely.ops import unary_union
+from shapely.ops import transform, unary_union
 from sqlalchemy import create_engine
 
 from ..grids import Grid
@@ -96,14 +96,16 @@ class Layout:
             self.wtg = None
 
     @classmethod
-    def from_shapefile(cls, filepath: str) -> "Layout":
+    def from_shapefile(cls, filepath: str, target_epsg: int | None = None) -> "Layout":
         """from_shapefile Alternate constructor to read a shapefile into a Layout object.
-        The shapefile must contain Point or MultiPoint geometry to be a valid Layout constructor.
+        The shapefile must contain Point or MultiPoint geometry to be a valid Layout constructor. Can reproject geometries on the fly from the source CRS into the desired CRS defined by its EPSG code in the optional target_epsg argument.
 
         Parameters
         ----------
         filepath : str
             Valid string file path to the shapefile to read.
+        target_epsg : int | None, optional
+            EPSG code of the target projection for the geometries to be loaded in. By default, None.
 
         Returns
         -------
@@ -111,20 +113,31 @@ class Layout:
             Layout object created from the shapefile.
         """
         with fiona.open(filepath) as src:
-            geom = [shape(rec["geometry"]) for rec in src]
+            geoms = [shape(rec["geometry"]) for rec in src]
+            src_crs = pyproj.CRS(src.crs)
+        
+        if target_epsg is not None:
+            target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+            crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
+            transformed_geoms = []
+            for geom in geoms:
+                transformed_geom = transform(crs_transformer.transform, geom)
+                transformed_geoms.append(transformed_geom)
+            
+            geoms = transformed_geoms
 
-        if all(isinstance(x, (Point, MultiPoint)) for x in geom):
-            geom = unary_union(geom)
+        if all(isinstance(x, (Point, MultiPoint)) for x in geoms):
+            geoms = unary_union(geoms)
             layout = cls()
-            layout._raw_geom = geom
-            layout.geom = geom
+            layout._raw_geom = geoms
+            layout.geom = geoms
             return layout
         else:
             raise TypeError("Geometry type must be Point or MultiPoint.")
 
     @classmethod
     def from_text(
-        cls, filepath: str, x_header: str | int, y_header: str | int, **kwargs
+        cls, filepath: str, x_header: str | int, y_header: str | int, source_epsg: int | None = None, target_epsg: int | None = None, **kwargs
     ) -> "Layout":
         """from_text Alternate constructor to read a text file into a Layout object. Text file must contain x and y coordinates to create Point
 
@@ -136,6 +149,12 @@ class Layout:
             Column name or number to read the x-coordinates.
         y_header : str | int
             Column name or number to read the y-coordinates.
+        source_epsg : int | None, optional
+            EPSG code of the source projection for the points to be loaded in. Used alongside target_epsg to compute the coordinate transformation. By default, None.
+        target_epsg : int | None, optional
+            EPSG code of the target projection for the points to be loaded in. Used alongside source_epsg to compute the coordinate transformation. By default, None.
+        **kwargs
+            Additional keyword argumentts passed into pandas.read_csv.
 
         Returns
         -------
@@ -144,6 +163,13 @@ class Layout:
         """
         data = pd.read_csv(filepath, **kwargs)
         geom = MultiPoint(list(zip(data[x_header], data[y_header])))  # type: ignore
+        
+        if (source_epsg is not None) and (target_epsg is not None):
+            source_crs = pyproj.CRS("EPSG:" + str(source_epsg))
+            target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+            crs_transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
+            geom = transform(crs_transformer.transform, geom)
+        
         layout = cls()
         layout._raw_geom = geom
         layout.geom = geom
@@ -158,10 +184,11 @@ class Layout:
         table: str,
         host: str = "ow-postgre.postgres.database.azure.com",
         db_name: str = "corp_ta_ea",
-        geom_col="geom",
+        geom_col: str = "geom",
+        target_epsg: int | None = None,
         **kwargs,
     ) -> "Layout":
-        """from_postgis Alternate constructor to read a PostGIS table into a Layout object. PostGIS table must contain Point or MultiPoint geometry to create a valid Layout.
+        """from_postgis Alternate constructor to read a PostGIS table into a Layout object. PostGIS table must contain Point or MultiPoint geometry to create a valid Layout. Can reproject geometries on the fly from the source CRS into the desired CRS defined by its EPSG code in the optional target_epsg argument.
 
         Parameters
         ----------
@@ -179,7 +206,11 @@ class Layout:
             Database name, by default "corp_ta_ea"
         geom_col : str, optional
             Name of the table column name containing the geometry data, by default "geom"
-
+        target_epsg : int | None, optional
+            EPSG code of the target projection for the geometries to be loaded in. By default, None.
+        **kwargs
+            Additional keyword arguments passed into geopandas.GeoDataFrame.from_postgis.
+        
         Returns
         -------
         Layout
@@ -190,6 +221,7 @@ class Layout:
         TypeError
             If the unary union of all the PostGIS geometries does not result in a MultiPoint geometry. I.e. all geometries within the PostGIS table must be Point or MultiPoint.
         """
+        # TODO: Should change the geopandas method from_postgis to read_postgis
         db_string = f"postgresql://{username}:{password}@{host}/{db_name}"
         engine = create_engine(db_string)
         data = gp.GeoDataFrame.from_postgis(
@@ -203,6 +235,13 @@ class Layout:
             raise TypeError(
                 f"Table geometry type must be Point or MultiPoint to construct a Layout, not {data[geom_col].geom_type.iloc[0]}."
             )
+        
+        if target_epsg is not None:
+            src_crs = data.crs
+            target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+            crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
+            geom = transform(crs_transformer.transform, geom)
+        
         layout = cls()
         layout._raw_geom = geom
         layout.geom = geom
