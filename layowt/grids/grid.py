@@ -1,5 +1,7 @@
-"""This module contains the Grid class which is the basic building block used
-to generate layouts."""
+"""
+This module contains the Grid class which is the basic building block used
+to generate layouts.
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -64,7 +66,8 @@ class Grid:
         origin: tuple = (0, 0),
         scale: float = 1,
     ) -> None:
-        """__init__ Initialise the Grid instance.        
+        """
+        __init__ Initialise the Grid instance.   
         """
         self.n_rows = n_rows
         self.n_cols = n_cols

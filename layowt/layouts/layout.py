@@ -448,10 +448,11 @@ class Layout:
         
         with rasterio.open(filepath, mode='r') as src:
             samples = [sample[0]*SIGN for sample in src.sample(self.coords, indexes=band)]
-            
-        valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
         
-        self.geom = unary_union(valid_points)
+        if self.geom is not None:    
+            valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
+            self.geom = unary_union(valid_points)
+
         self.bathymetry_path = filepath
         self.bathymetry_sign = sign
         self.bathymetry_limits = limits
@@ -460,7 +461,7 @@ class Layout:
         return self
 
     def apply_bathymetry(self,
-                        dataset: rasterio.io.DatasetReader,
+                        dataset: rasterio.DatasetReader,
                         sign: str = '-',
                         band: int = 1,
                         limits: tuple[float, float] = (0., 60.),
@@ -526,10 +527,11 @@ class Layout:
         SIGN = {'-': -1, '+': 1}[sign]
         
         samples = [sample[0]*SIGN for sample in dataset.sample(self.coords, indexes=band)]
-            
-        valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
         
-        self.geom = unary_union(valid_points)
+        if self.geom is not None:
+            valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
+            self.geom = unary_union(valid_points)
+        
         self.bathymetry_sign = sign
         self.bathymetry_limits = limits
         self.bathymetry_drop_na = drop_na
