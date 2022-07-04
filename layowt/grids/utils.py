@@ -1,5 +1,7 @@
-"""This module contains utility functions for the creation of grid coordinates
-for the layowt.grids.grid.Grid object."""
+"""
+This module contains utility functions for the creation of grid coordinates
+for the layowt.grids.grid.Grid object.
+"""
 
 
 from functools import lru_cache
@@ -15,7 +17,8 @@ def _create_base_coords(
     row_offset: bool,
     col_offset: bool,
 ) -> np.ndarray:
-    """_create_base_coords Creates a simple rectangular grid of points centered around (0, 0) in non-dimensional space.
+    """_create_base_coords Creates a simple rectangular grid of points centered around (0, 0) in
+    non-dimensional space.
 
     Parameters
     ----------
