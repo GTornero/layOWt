@@ -105,7 +105,7 @@ class Layout:
         filepath : str
             Valid string file path to the shapefile to read.
         target_epsg : int | None, optional
-            EPSG code of the target projection for the geometries to be loaded in. By default, None.
+            `EPSG <https://epsg.io/>`_ code of the target projection for the geometries to be loaded in. By default, None.
 
         Returns
         -------
@@ -150,9 +150,9 @@ class Layout:
         y_header : str | int
             Column name or number to read the y-coordinates.
         source_epsg : int | None, optional
-            EPSG code of the source projection for the points to be loaded in. Used alongside target_epsg to compute the coordinate transformation. By default, None.
+            `EPSG <https://epsg.io/>`_ code of the source projection for the points to be loaded in. Used alongside target_epsg to compute the coordinate transformation. By default, None.
         target_epsg : int | None, optional
-            EPSG code of the target projection for the points to be loaded in. Used alongside source_epsg to compute the coordinate transformation. By default, None.
+            `EPSG <https://epsg.io/>`_ code of the target projection for the points to be loaded in. Used alongside source_epsg to compute the coordinate transformation. By default, None.
         **kwargs
             Additional keyword argumentts passed into pandas.read_csv.
 
@@ -188,7 +188,9 @@ class Layout:
         target_epsg: int | None = None,
         **kwargs,
     ) -> "Layout":
-        """from_postgis Alternate constructor to read a PostGIS table into a Layout object. PostGIS table must contain Point or MultiPoint geometry to create a valid Layout. Can reproject geometries on the fly from the source CRS into the desired CRS defined by its EPSG code in the optional target_epsg argument.
+        """from_postgis Alternate constructor to read a PostGIS table into a Layout object. PostGIS table must contain Point or MultiPoint
+        geometry to create a valid Layout. Can reproject geometries on the fly from the source CRS into the desired CRS defined by its EPSG
+        code in the optional target_epsg argument.
 
         Parameters
         ----------
@@ -207,7 +209,7 @@ class Layout:
         geom_col : str, optional
             Name of the table column name containing the geometry data, by default "geom"
         target_epsg : int | None, optional
-            EPSG code of the target projection for the geometries to be loaded in. By default, None.
+            `EPSG <https://epsg.io/>`_ code of the target projection for the geometries to be loaded in. By default, None.
         **kwargs
             Additional keyword arguments passed into geopandas.GeoDataFrame.from_postgis.
         
@@ -781,7 +783,7 @@ class Layout:
         filepath : str
             Filepath to save the Shapefile as.
         epsg : int
-            Valid EPSG code for the projection of the Shapefile.
+            Valid `EPSG <https://epsg.io/>`_ code for the projection of the Shapefile.
         """
         # TODO: Create a more detailed attribute schema (wakes, water depth, etc.).
         schema = {"geometry": "Point", "properties": {"id": "int"}}
