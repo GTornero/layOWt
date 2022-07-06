@@ -14,12 +14,14 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+from datetime import date
+
 from layowt import __release__, __version__
 
 # -- Project information -----------------------------------------------------
 
 project = 'LayOWt'
-copyright = '2022, Guillermo Tornero'
+copyright = str(date.today().year) + ', Guillermo Tornero'
 author = 'Guillermo Tornero'
 
 # The short X.Y version
