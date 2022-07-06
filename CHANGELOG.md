@@ -1,5 +1,5 @@
-[comment]: # (CHANGELOG template from https://gist.github.com/juampynr/4c18214a8eb554084e21d6e288a18a2c)
-[comment]: # (How to use Git to create a changelog https://www.freecodecamp.org/news/a-beginners-guide-to-git-what-is-a-changelog-and-how-to-generate-it/)
+% (CHANGELOG template from https://gist.github.com/juampynr/4c18214a8eb554084e21d6e288a18a2c)
+% (How to use Git to create a changelog https://www.freecodecamp.org/news/a-beginners-guide-to-git-what-is-a-changelog-and-how-to-generate-it/)
 
 # Change Log
 All notable changes to this project will be documented in this file.
