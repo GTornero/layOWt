@@ -67,7 +67,7 @@ class Grid:
         scale: float = 1,
     ) -> None:
         """
-        __init__ Initialise the Grid instance.   
+        __init__ Initialise the Grid instance.
         """
         self.n_rows = n_rows
         self.n_cols = n_cols
