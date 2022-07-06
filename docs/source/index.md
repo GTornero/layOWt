@@ -5,19 +5,12 @@
 
 # Welcome to LayOWt's Docs!
 
-
-
 ```{include} ../../README.md
 ```
 
-**Installation:** Read installation instructions in {doc}`installation`.
+% **Installation:** Read installation instructions in {doc}`installation`.
 
-**Tutorial:** Access the tutorial section in {doc}`Tutorial <tutorial>`.
-
-
-```{warning}
-This library is under heavy development.
-```
+% **Tutorial:** Access the tutorial section in {doc}`Tutorial <tutorial>`.
 
 # Indices and tables
 
@@ -33,3 +26,7 @@ tutorial
 
 - {ref}`genindex`
 - {ref}`modindex`
+
+```{warning}
+This library is under heavy development.
+```
