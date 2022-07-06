@@ -6,6 +6,9 @@ import geopandas as gp
 import numpy as np
 import pandas as pd
 import pyproj
+import rasterio
+from rasterio.crs import CRS
+from rasterio.warp import Resampling, calculate_default_transform, reproject
 from shapely.geometry import shape
 from shapely.ops import transform
 from sqlalchemy import create_engine
@@ -21,7 +24,7 @@ def geoms_from_shapefile(filepath: str, target_epsg: int | None = None) -> list:
     filepath : str
         filepath of the shapefile to load.
     target_epsg : int | None, optional
-        EPSG code of the target projection for the geometries to be loaded in. By default, None.
+        `EPSG <https://epsg.io/>`_ code of the target projection for the geometries to be loaded in. By default, None.
 
     Returns
     -------
@@ -75,7 +78,7 @@ def geoms_from_postgis(
     geom_col : str, optional
         name of the geometry column within the table, by default "geom"
     target_epsg : int | None, optional
-        EPSG code of the target projection for the geometries to be loaded in. By default, None.
+        `EPSG <https://epsg.io/>`_ code of the target projection for the geometries to be loaded in. By default, None.
 
     Returns
     -------
@@ -134,3 +137,61 @@ def layouts_to_legacy_csv(layouts: list[Layout], filepath: str = "layouts.csv") 
     layout_info_df = pd.DataFrame(layout_info)
     layout_info_df.columns = ["id", "angle", "row", "col"]
     layout_info_df.to_csv("INFO_" + filepath, index=False)
+
+def reproject_raster(filepath: str, output_path: str, target_epsg: int, resample_method: int = 0) -> None:
+    """reproject_raster Utility function to reproject raster datasets into the CRS defined by the user input EPSG code. Can select from a variety of reampling methods.
+
+    Parameters
+    ----------
+    filepath : str
+        filepath of the raster to be reprojected. Must be a format supported by the rasterio.open function.
+    output_path : str
+        filepath of the reprojected raster dataset.
+    target_epsg : int
+        `EPSG <https://epsg.io/>`_ code of the target projection for the reprojected raster dataset.
+    resample_method : int, optional
+        Resampling algorithm. Integer value used by the rasterio.enums.Resampling enumerator class to select the algorithm, by default 0.    
+        The mapping of values to resampling algorithm is the following:
+            * nearest = 0
+            * bilinear = 1
+            * cubic = 2
+            * cubic_spline = 3
+            * lanczos = 4
+            * average = 5
+            * mode = 6
+            * gauss = 7
+            * max = 8
+            * min = 9
+            * med = 10
+            * q1 = 11
+            * q3 = 12
+            * sum = 13
+            * rms = 14
+    
+    See Also
+    --------
+    rasterio.warp.reproject : Rasterio module for warping and reprojection of raster datasets.
+    rasterio.enums.Resampling : Rasterio warp resampling algorithms.
+    """
+    dst_crs = CRS.from_epsg(target_epsg)
+    
+    with rasterio.open(filepath) as src:
+        transform, width, height = calculate_default_transform(src.crs, dst_crs, src.width, src.height, *src.bounds)
+        kwargs = src.meta.copy()
+        kwargs.update({"crs": dst_crs,
+                       "transform": transform,
+                       "width": width,
+                       "height": height
+        })
+    
+        with rasterio.open(output_path, "w", **kwargs) as dst:
+            for i in range(1, src.count + 1):
+                reproject(
+                    source=rasterio.band(src, i),
+                    destination=rasterio.band(dst, i),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=transform,
+                    dst_crs=dst_crs,
+                    resampling=Resampling(resample_method)
+                )
