@@ -31,5 +31,4 @@ doc = [
     "sphinx-autoapi",
     "sphinx-hoverxref",
     "sphinx-copybutton",
-    "ipython",
 ]
