@@ -117,6 +117,10 @@ hoverxref_role_types = {
 #
 html_theme = 'furo'
 
+html_theme_options = {
+    "top_of_page_button": None,
+}
+
 html_logo = '../../img/logo_small.png'
 
 html_favicon = '../../img/favicon.ico'
