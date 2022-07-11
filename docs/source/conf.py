@@ -44,6 +44,7 @@ extensions = [
     "sphinx.ext.napoleon",
     #"sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.viewcode",
     "autoapi.extension",
     "nbsphinx", # can also use MyST-NB
     "hoverxref.extension",
