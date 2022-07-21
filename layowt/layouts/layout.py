@@ -468,7 +468,9 @@ class Layout:
                         band: int = 1,
                         limits: tuple[float, float] = (0., 60.),
                         drop_na: bool = False) -> "Layout":
-        """apply_bathymetry Alternative method to apply minimum and maximum bathymetry limits to a Layout. This method takes in an open rasterio.IO.DatasetReader object. More efficient than Layout.load_bathymetry if applied within loops as this method avoids opening and closing the raster data file on every iteration.
+        """apply_bathymetry Alternative method to apply minimum and maximum bathymetry limits to a Layout. This method takes
+        in an open rasterio.IO.DatasetReader object. More efficient than :meth:`Layout.load_bathymetry` if applied within loops as this
+        method avoids opening and closing the raster data file on every iteration.
 
         Parameters
         ----------
