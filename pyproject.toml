@@ -32,3 +32,6 @@ doc = [
     "sphinx-hoverxref",
     "sphinx-copybutton",
 ]
+tests = [
+    "pytest==7.1.2",
+]
