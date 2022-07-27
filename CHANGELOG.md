@@ -6,7 +6,27 @@ All notable changes to this project will be documented in this file.
  
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
+
+============================================================================================================================================
+## [0.1.0] - [ADD DATE HERE!!]
  
+First official release of LayOWt!
+ 
+### Added
+ 
+
+
+### Changed
+ - Layout.plot() method now uses geopandas plotting functionality for simpler logic on multipolygons.
+
+
+ 
+### Fixed
+- Layout.plot() method now does not raise an AttributeError if there are no turbines to plot. Plots an empty figure with no turbines.
+
+
+
+============================================================================================================================================
 ## [0.1.0-beta] - 2022-07-06
  
 First pre-release of LayOWt!
@@ -27,5 +47,5 @@ Please test away and send your feedback!
 
 
 
-
+============================================================================================================================================
 
