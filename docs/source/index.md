@@ -22,6 +22,7 @@
 
 installation
 tutorial
+changelog_link
 ```
 
 - {ref}`genindex`
