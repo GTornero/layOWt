@@ -706,7 +706,7 @@ class Layout:
         ----
         Performance can be seriously reduced if show_bathy is set to true and high resolution bathymetry data is to be rendered.
         """
-        # TODO: Update this method to use GeoPandas for easier plotting.
+
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize)
         else:
@@ -723,36 +723,17 @@ class Layout:
                 rasterio.plot.show(src, ax=ax, alpha=0.5)
                 plt.colorbar(mappable=ax.get_images()[0], ax=ax)
         
-        # Plots the points of the valid turbines
-        ax.scatter(self.x, self.y, color="g")
+        # Plots the points of the valid turbines if there any any points left
+        if not self.geom.is_empty:
+            ax.scatter(self.x, self.y, color="g")
 
         # Plots the project area(s) and their interior holes if present
         if self.area is not None:
-            if isinstance(self.area, MultiPolygon):
-                for geom in self.area.geoms:  # type: ignore
-                    ax.plot(*geom.exterior.xy, "r")  # type: ignore
-                    if len(geom.interiors) != 0:  # type: ignore
-                        for hole in geom.interiors:  # type: ignore
-                            ax.plot(*hole.xy, "r")  # type: ignore
-            if isinstance(self.area, Polygon):
-                ax.plot(*self.area.exterior.xy, "r")  # type: ignore
-                if len(self.area.interiors) != 0:  # type: ignore
-                    for hole in self.area.interiors:  # type: ignore
-                        ax.plot(*hole.xy, "r")
+            gp.GeoSeries(self.area).plot(ax=ax, facecolor='none', edgecolor='r', lw=1.5)
 
         # Plots the project exclusions(s) and their interior holes if present
         if self.exclusion is not None:
-            if isinstance(self.exclusion, MultiPolygon):
-                for geom in self.exclusion.geoms:  # type: ignore
-                    ax.fill(*geom.exterior.xy, color="black", alpha=0.2)
-                    if len(geom.interiors) != 0:
-                        for hole in geom.interiors:
-                            ax.fill(*hole.xy, color="green", hatch="/", alpha=0.2)
-            if isinstance(self.exclusion, Polygon):
-                ax.fill(*self.exclusion.exterior.xy, color="black", alpha=0.2)  # type: ignore
-                if len(self.exclusion.interiors) != 0:  # type: ignore
-                    for hole in self.exclusion.interiors:  # type: ignore
-                        ax.fill(*hole.xy, color="green", hatch="/", alpha=0.2)
+            gp.GeoSeries(self.exclusion).plot(ax=ax, facecolor='black', alpha=0.2)
 
         ax.set_aspect("equal", "box")
 
