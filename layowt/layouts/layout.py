@@ -65,6 +65,7 @@ class Layout:
         self.bathymetry_limits = None
         self.bathymetry_sign = None
         self.bathymetry_drop_na = None
+        self.samples = None
 
         if grid is not None:
             self.geom = self.grid.to_multipoint()  # type: ignore
@@ -223,7 +224,7 @@ class Layout:
         TypeError
             If the unary union of all the PostGIS geometries does not result in a MultiPoint geometry. I.e. all geometries within the PostGIS table must be Point or MultiPoint.
         """
-        # TODO: Should change the geopandas method from_postgis to read_postgis
+        # TODO: Should change the geopandas method GeoDataFrame.from_postgis to geopandas.read_postgis
         db_string = f"postgresql://{username}:{password}@{host}/{db_name}"
         engine = create_engine(db_string)
         data = gp.GeoDataFrame.from_postgis(
@@ -411,7 +412,7 @@ class Layout:
                         limits: tuple[float, float] = (0., 60.),
                         drop_na: bool = False
     ) -> "Layout":
-        """load_bathymetry Loads bathymetry data, stores the path, limits, and sign, and removes any invalid positions.
+        """load_bathymetry Loads bathymetry data, stores the path, limits, and sign, and removes any invalid positions. Bathymetry values are stored in the `samples` attribute of the Layout instance.
 
         Parameters
         ----------
@@ -446,14 +447,20 @@ class Layout:
         if not self._constrained:
             self._constrained = True
         
-        SIGN = {'-': -1, '+': 1}[sign]
-        
-        with rasterio.open(filepath, mode='r') as src:
-            samples = [sample[0]*SIGN for sample in src.sample(self.coords, indexes=band)]
-        
-        if self.geom is not None:    
-            valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
-            self.geom = unary_union(valid_points)
+        if not self.geom.is_empty:
+            SIGN = {'-': -1, '+': 1}[sign]
+            
+            with rasterio.open(filepath, mode='r') as src:
+                samples = [sample[0]*SIGN for sample in src.sample(self.coords, indexes=band)]
+            
+            if self.geom is not None:    
+                valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
+                self.geom = unary_union(valid_points)
+                
+                self.samples = []
+                for sample in samples:
+                    if _valid_sample(sample, limits, drop_na):
+                        self.samples.append(sample)
 
         self.bathymetry_path = filepath
         self.bathymetry_sign = sign
@@ -528,13 +535,19 @@ class Layout:
         if not self._constrained:
             self._constrained = True
         
-        SIGN = {'-': -1, '+': 1}[sign]
-        
-        samples = [sample[0]*SIGN for sample in dataset.sample(self.coords, indexes=band)]
-        
-        if self.geom is not None:
-            valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
-            self.geom = unary_union(valid_points)
+        if not self.geom.is_empty:
+            SIGN = {'-': -1, '+': 1}[sign]
+            
+            samples = [sample[0]*SIGN for sample in dataset.sample(self.coords, indexes=band)]
+            
+            if self.geom is not None:
+                valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
+                self.geom = unary_union(valid_points)
+                
+                self.samples = []
+                for sample in samples:
+                    if _valid_sample(sample, limits, drop_na):
+                        self.samples.append(sample)
         
         self.bathymetry_sign = sign
         self.bathymetry_limits = limits
@@ -602,6 +615,7 @@ class Layout:
             self.bathymetry_limits = None
             self.bathymetry_sign = None
             self.bathymetry_drop_na = None
+            self.samples = None
             self._constrained = False
         if self.has_geom():
             self.geom = self._raw_geom

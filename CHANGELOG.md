@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 First official release of LayOWt!
  
 ### Added
- 
+- Layout.load_bathymetry() and Layout.apply_bathymetry() methods now store the bathymetry values in the Layout.samples class attribute.
 
 
 ### Changed
