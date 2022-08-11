@@ -84,6 +84,8 @@ intersphinx_mapping = {
     "py_wake": ("https://topfarm.pages.windenergy.dtu.dk/PyWake/", None),
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "rasterio": ("https://rasterio.readthedocs.io/en/latest/", None),
+    "sqlalchemy": ("https://docs.sqlalchemy.org/en/14/", None),
+    "geopandas": ("https://geopandas.org/en/stable/", None),
 }
 
 # Hoverxref Extension
@@ -97,6 +99,8 @@ hoverxref_intersphinx = [
     "py_wake",
     "shapely",
     "rasterio",
+    "sqlalchemy",
+    "geopandas",
 ]
 hoverxref_domains = ["py"]
 hoverxref_role_types = {
