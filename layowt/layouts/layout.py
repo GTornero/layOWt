@@ -709,12 +709,12 @@ class Layout:
         Returns
         -------
         tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
-            Tuple of Figure and Axes objects
+            Tuple of Figure and Axes objects.
 
         Raises
         ------
         TypeError
-            The passed ax argument was not of type Axes
+            The passed ax argument was not of type Axes.
         
         Caution
         ----
