@@ -13,16 +13,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 First official release of LayOWt!
  
 ### Added
-- Layout.load_bathymetry() and Layout.apply_bathymetry() methods now store the bathymetry values in the Layout.samples class attribute.
+- {meth}`layowt.layouts.layout.Layout.load_bathymetry()` and {meth}`layowt.layouts.layout.Layout.apply_bathymetry()` methods now store the bathymetry values in the {attr}`layowt.layouts.layout.Layout.samples` class attribute.
+- {mod}`layowt.wtg` module
+    - {class}`layowt.wtg.power_curve.PowerCurve` class with the capability to create power curves from the OW database directly.
+        - {meth}`layowt.wtg.power_curve.PowerCurve.set_hub_height()` method to set the hub height on a {class}`layowt.wtg.power_curve.PowerCurve` instance.
+        - {meth}`layowt.wtg.power_curve.PowerCurve.database_engine()` static method to create a {class}`sqlalchemy.engine.Engine` database connection to the corporate OW power curve database.
+        - {meth}`layowt.wtg.power_curve.PowerCurve.from_commercial_database()` class method to create {class}`layowt.wtg.power_curve.PowerCurve` instances by `curve_id` from the corporate OW power curve database.
+        - {meth}`layowt.wtg.power_curve.PowerCurve.plot()` method to plot the power and thurst curves.
+        - {meth}`layowt.wtg.power_curve.PowerCurve.from_wtg()` method to load WAsP .wtg files as an {class}`layowt.wtg.power_curve.PowerCurve` instance.
 
 
 ### Changed
- - Layout.plot() method now uses geopandas plotting functionality for simpler logic on multipolygons.
+ - {meth}`layowt.layouts.layout.Layout.plot()` method now uses {class}`geopandas.GeoDataFrame` plotting functionality for simpler logic on multipolygons.
 
 
  
 ### Fixed
-- Layout.plot() method now does not raise an AttributeError if there are no turbines to plot. Plots an empty figure with no turbines.
+- {meth}`layowt.layouts.layout.Layout.plot()` method now does not raise an {exc}`AttributeError` if there are no turbines to plot. Plots an empty figure with no turbines.
 
 
 
@@ -34,9 +41,9 @@ First pre-release of LayOWt!
 Please test away and send your feedback!
  
 ### Added
-- grids module
-- layouts module
-- aep module
+- {mod}`layowt.grids` module
+- {mod}`layowt.layouts` module
+- {mod}`layowt.aep` module
  
 ### Changed
  
