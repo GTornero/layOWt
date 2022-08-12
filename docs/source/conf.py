@@ -78,6 +78,7 @@ exclude_patterns = ["_static"]
 # Intersphinx configuration
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy-1.8.1/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
@@ -93,6 +94,7 @@ hoverxref_auto_ref = True
 hoverxref_mathjax = True
 hoverxref_intersphinx = [
     "python",
+    "pandas",
     "numpy",
     "scipy",
     "matplotlib",
