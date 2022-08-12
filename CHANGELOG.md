@@ -20,8 +20,11 @@ First official release of LayOWt!
         - {meth}`layowt.wtg.power_curve.PowerCurve.database_engine()` static method to create a {class}`sqlalchemy.engine.Engine` database connection to the corporate OW power curve database.
         - {meth}`layowt.wtg.power_curve.PowerCurve.from_commercial_database()` class method to create {class}`layowt.wtg.power_curve.PowerCurve` instances by `curve_id` from the corporate OW power curve database.
         - {meth}`layowt.wtg.power_curve.PowerCurve.plot()` method to plot the power and thurst curves.
-        - {meth}`layowt.wtg.power_curve.PowerCurve.from_wtg()` method to load WAsP .wtg files as an {class}`layowt.wtg.power_curve.PowerCurve` instance.
-
+        - {meth}`layowt.wtg.power_curve.PowerCurve.from_wtg()` class method to load WAsP .wtg files as an {class}`layowt.wtg.power_curve.PowerCurve` instance.
+        - {meth}`layowt.wtg.power_curve.PowerCurve.to_wtg()` method to export a {class}`layowt.wtg.power_curve.PowerCurve` instance into a WAsP .wtg file.
+        - {meth}`layowt.wtg.power_curve.PowerCurve.compare_curves_from_database()` class method to load multiple {class}`layowt.wtg.power_curve.PowerCurve` instances from the OW corporate power curve database, and compare them by potting their power and thurst curves.
+        - {meth}`layowt.wtg.power_curve.PowerCurve.get_commercial_turbines()` class method that return a dataframe of all the commercial turbine attributes stored in the OW corporate power curve database.
+        - {meth}`layowt.wtg.power_curve.PowerCurve.interpolate()` method to interpolate the {class}`layowt.wtg.power_curve.PowerCurve` instance with a new wind speed step.
 
 ### Changed
  - {meth}`layowt.layouts.layout.Layout.plot()` method now uses {class}`geopandas.GeoDataFrame` plotting functionality for simpler logic on multipolygons.
