@@ -145,7 +145,7 @@ class PowerCurve:
         return engine
     
     @classmethod
-    def from_commercial_database(cls, curve_id: str, engine: Optional[sa.engine.Engine]=None, username: Optional[str]=None) -> "PowerCurve":
+    def from_database(cls, curve_id: str, engine: Optional[sa.engine.Engine]=None, username: Optional[str]=None) -> "PowerCurve":
         """
         Alternative constructor method to create a :class:`PowerCurve` instance directly from the OW
         corporate power curve database by passing a unique curve_id.
@@ -170,31 +170,32 @@ class PowerCurve:
             PowerCurve instance built from the OW corporate power curve database query result.
         """
         
+        curve_type = "commercial"
+        
         if engine is None:
             engine = PowerCurve.database_engine(username=username)
         
-        pc_attrs = pd.read_sql(f"SELECT * FROM power_curves.commercial_turbines WHERE curve_id = '{curve_id}'", engine)
+        pc_attrs = pd.read_sql(f"SELECT * FROM power_curves.{curve_type}_turbines WHERE curve_id = '{curve_id}'", engine)
         
         if pc_attrs.empty:
-            raise ValueError(f"No {curve_id=} found in the database. Could not create a PowerCurve instance.")
+            curve_type = "internal"
+            pc_attrs = pd.read_sql(f"SELECT * FROM power_curves.{curve_type}_turbines WHERE curve_id = '{curve_id}'", engine)
         
-        pc_df = pd.read_sql(f"SELECT * FROM power_curves.commercial_power_curves WHERE curve_id = '{curve_id}'", engine)
+            if pc_attrs.empty:
+                raise ValueError(f"No {curve_id=} found in the database. Could not create a PowerCurve instance.")
+        
+        pc_df = pd.read_sql(f"SELECT * FROM power_curves.{curve_type}_power_curves WHERE curve_id = '{curve_id}'", engine)
         
         pc = cls(wind_speed=pc_df["wind_speed"], power=pc_df["power_kw"], ct=pc_df["ct"], rotor_diameter=pc_attrs["rotor_diameter_m"][0],
                  air_density=pc_attrs["air_density"][0], cut_in=pc_attrs["cut_in_ws"][0], cut_out=pc_attrs["cut_out_ws"][0],
                  rated_ws=pc_attrs["rated_ws"][0], curve_id=curve_id, manufacturer=pc_attrs["manufacturer"][0])
         
         pc.attributes["curve_date"] = pc_attrs["curve_date"][0]
-        pc.attributes["ref_document_id"] = pc_attrs["ref_document_id"][0]
+        pc.attributes["ref_document_id"] = pc_attrs["ref_document_id"][0] # FIXME: this might throw an error if internal turbines dont have a reference doc.
         pc.attributes["revision"] = pc_attrs["revision"][0]
-        pc.attributes["curve_type"] = "commercial"
+        pc.attributes["curve_type"] = curve_type.title()
         
         return pc
-    
-    @classmethod
-    def from_internal_database(cls, curve_id: str, engine: Optional[sa.engine.Engine]=None, username: Optional[str]=None) -> "PowerCurve":
-        # TODO: Implement method once the internal databse is set up.
-        raise NotImplementedError
     
     def plot(self, ax: Axes | None = None, figsize: tuple = (8, 6)) -> tuple[Figure, Axes]:
         """
@@ -404,7 +405,7 @@ class PowerCurve:
         
         for curve_id in curve_ids:
             try:
-                power_curves.append(cls.from_commercial_database(curve_id=curve_id, engine=engine))
+                power_curves.append(cls.from_database(curve_id=curve_id, engine=engine))
             except ValueError:
                 continue
         
@@ -464,6 +465,36 @@ class PowerCurve:
             engine = cls.database_engine(username=username)
         
         turbine_df= pd.read_sql(f"SELECT * FROM power_curves.commercial_turbines ORDER BY id ASC", engine)
+        
+        return turbine_df
+    
+    @classmethod
+    def get_internal_turbines(cls, engine: Optional[sa.engine.Engine]=None, username: Optional[str]=None) -> pd.DataFrame:
+        """
+        Class method that queries the OW corporate power curve database for internal turbines and return a pandas DataFrame
+        of all the available turbines and their attributes.
+
+        Parameters
+        ----------
+        engine : Optional[sqlalchemy.engine.Engine], optional
+            SqlAlchemy connection engine to the OW corporate power curve database. If no open
+            connection is passed, the static method :meth:`PowerCurve.database_engine()` will be
+            called implicitly using `username` if passed, otherwise the username is derived from
+            the Windows user login name. By default None.
+        username : Optional[str], optional
+            OW corporate username in the @oceanwinds.com domain. If no username is provided, the
+            username is derived friom the Windows user login name. This argument is only required
+            if no engine is passed. By default None.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame of the available commercial turbines and their attributes.
+        """
+        if engine is None:
+            engine = cls.database_engine(username=username)
+        
+        turbine_df= pd.read_sql(f"SELECT * FROM power_curves.internal_turbines ORDER BY id ASC", engine)
         
         return turbine_df
 
