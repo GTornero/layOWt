@@ -1,12 +1,15 @@
 """ aep module. This module contains functions to calculate aep using different methods and inputs.
 """
 import numpy as np
-from py_wake.wind_turbines import WindTurbine
+from layowt.wtg.power_curve import PowerCurve
 from scipy.integrate import simpson
 
 
-def weibull_aep(wtg: WindTurbine, weibull_a: float, weibull_k: float, units: str = "GWh") -> float:
-    """weibull_aep This function calculates the gross AEP using a py_wake WindTurbine and a Weibull distribution. The method integrates the result of dicrete function resulting from the multiplication of the WindTurbine power curve and the 2-parameter Weibull probability density function. The integration is carried out using Simpon's rule as implemented in Scipy.integrate.simpson. The calculted AEP can be reported in Wh, kWh, MWh, and GWh.
+def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str = "GWh") -> float:
+    """weibull_aep This function calculates the gross AEP using a LayOWt PowerCurve and a Weibull distribution.
+    The method integrates the result of dicrete function resulting from the multiplication of the PowerCurve power
+    curve and the 2-parameter Weibull probability density function. The integration is carried out using Simpon's
+    rule as implemented in Scipy.integrate.simpson. The calculted AEP can be reported in Wh, kWh, MWh, and GWh.
 
     .. math::
         aep = \\displaystyle \\int_{cut-in}^{cut-out} P(ws)PC(ws) dws
@@ -18,8 +21,8 @@ def weibull_aep(wtg: WindTurbine, weibull_a: float, weibull_k: float, units: str
 
     Parameters
     ----------
-    wt : WindTurbine
-        py_wake WindTurbine object. This object contains all of the turbine specifications such as power and Ct vs wind speed curves, rotor size, etc.
+    wt : PowerCurve
+        LayOWt PowerCurve object. This object contains all of the turbine specifications such as power and Ct vs wind speed curves, rotor size, etc.
     weibull_a : float
         The 2-parameter Weibull scale parameter.
     weibull_k : float
@@ -30,7 +33,7 @@ def weibull_aep(wtg: WindTurbine, weibull_a: float, weibull_k: float, units: str
     Returns
     -------
     float
-        The gross AEP for the passed WindTurbine assuming a theoretical 2-parameter Weibull distribution.
+        The gross AEP for the passed PowerCurve assuming a theoretical 2-parameter Weibull distribution.
 
     Raises
     ------
@@ -41,21 +44,17 @@ def weibull_aep(wtg: WindTurbine, weibull_a: float, weibull_k: float, units: str
 
     Examples
     --------
-    >>> from layowt.grids import Grid
-    >>> from layowt.layouts import Layout
-    >>> layout = Layout(Grid())
-    >>> layout.load_wtg("prototype_inputs/NGT260-21MW_Vestas_v3.wtg")
-    >>> weibull_aep(layout.wtg, weibull_a=11, weibull_k=2)
+    >>> from layowt.wtg import PowerCurve
+    >>> from layowt.aep import weibull_aep
+    >>> power_curve = PowerCurve.from_wtg("prototype_inputs/NGT260-21MW_Vestas_v3.wtg")
+    >>> print(weibull_aep(power_curve, weibull_a=11, weibull_k=2))
     99.66977656017633
 
     See Also
     --------
-    layowt.layouts.layout.Layout.load_wtg : Loads a WAsP .wtg file into the layout as a py_wake WindTurbine object.
-
-    py_wake.wind_turbines.WindTurbine : py_wake WindTurbine object.
+    layowt.wtg.power_curve.PowerCurve : LayOWt PowerCurve object.
 
     scipy.integrate.simpson : Simpson's rule implemented by Scipy.
-
     """
     if (weibull_a <= 0) or (weibull_k <= 0):
         raise ValueError(f"a and k must be positive values. {weibull_a=}, {weibull_k=} passed.")
@@ -63,11 +62,11 @@ def weibull_aep(wtg: WindTurbine, weibull_a: float, weibull_k: float, units: str
     if units.lower() not in ["gwh", "mwh", "kwh", "wh"]:
         raise ValueError(f'units must be in ["gwh", "mwh", "kwh", "wh"]. {units=} passed.')
 
-    power_scale_factor = {"gwh": 1e9, "mwh": 1e6, "kwh": 1e3, "wh": 1}[units.lower()]
+    power_scale_factor = {"gwh": 1e6, "mwh": 1e3, "kwh": 1, "wh": 1e-3}[units.lower()]
 
-    wind_speed_bins = wtg.wt_data[0]["WindSpeed"]
-    power = wtg.wt_data[0]["PowerOutput"]
-    weibull_dist = weibull_k/weibull_a*(wind_speed_bins/weibull_a)**(weibull_k-1) * np.exp(-(wind_speed_bins/weibull_a)**weibull_k)
+    wind_speed_bins = pc.data.index
+    power = pc.data["power"]
+    weibull_dist = weibull_k / weibull_a * (wind_speed_bins / weibull_a)**(weibull_k-1) * np.exp(-(wind_speed_bins/weibull_a)**weibull_k)
     aep = 8766*simpson(weibull_dist*power, wind_speed_bins)
 
     return aep / power_scale_factor
