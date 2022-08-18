@@ -252,6 +252,20 @@ class PowerCurve:
         return fig, ax
     
     def to_wtg(self, filepath: str="power_curve.wtg"):
+        """
+        Exports the :class:`PowerCurve` object into a DTU WAsP .wtg file format.
+
+        Parameters
+        ----------
+        filepath : str, optional
+            Filepath of the output file, by default "power_curve.wtg".
+
+        Raises
+        ------
+        ValueError
+            hub_height attribute of the :class:`PowerCurve` instance is not set. This is required
+            by the .wtg file format.
+        """
         
         if self.attributes["hub_height"] is None:
             raise ValueError("Must set hub height before creating .wtg file.")
@@ -536,3 +550,65 @@ class PowerCurve:
         interpolated_power_curve.attributes = self.attributes.copy()
         
         return interpolated_power_curve
+    
+    @classmethod
+    def from_text(cls, filepath: str, pc_cols: tuple[int | str, int | str, int | str] = (0, 1, 2), **kwargs) -> "PowerCurve":
+        """
+        Alternative constructor class method to load text data into a :class:`PowerCurve` instance.
+        This method uses the :func:`pandas.read_csv` function to read the text data into a
+        :class:`pandas.DataFrame`.
+
+        Parameters
+        ----------
+        filepath : str
+            Filepath of the text data to load..
+        pc_cols : tuple[int  |  str, int  |  str, int  |  str], optional
+            Tuple of wind speed, power, and thrust curve column identifiers. Can pass a string if
+            identifying the column by a header, or an int if identifying columns by index (first 
+            index starting at 0). If strings are passed, the text file must contain headers. If int
+            are passed, make sure to pass the keyword argument header=None to avoid losing the
+            first row of data. By default (0, 1, 2).
+        **kwargs
+            Additional kewword arguments to pass as keyword arguments to :func:`pandas.read_csv`.
+
+        Returns
+        -------
+        PowerCurve
+            A :class:`PowerCurve` object with performance data loaded from a text file.
+
+        Raises
+        ------
+        TypeError
+            The type of the pc_col identifiers was not of type str or int.
+        
+        See Also
+        --------
+        pandas.read_csv: Read a text file into a Pandas DataFrame.
+        """
+        
+        pc_df = pd.read_csv(filepath, **kwargs)
+        
+        if isinstance(pc_cols[0], int):
+            wind_speed = pc_df.iloc[:, pc_cols[0]]
+        elif isinstance(pc_cols[0], str):
+            wind_speed = pc_df[pc_cols[0]]
+        else:
+            raise TypeError(f"Invalid type for wind_speed column index. Must be int or str, type {type(pc_cols[0])} passed.")
+        
+        if isinstance(pc_cols[1], int):
+            power = pc_df.iloc[:, pc_cols[1]]
+        elif isinstance(pc_cols[1], str):
+            power = pc_df[pc_cols[1]]
+        else:
+            raise TypeError(f"Invalid type for power column index. Must be int or str, type {type(pc_cols[1])} passed.")
+        
+        if isinstance(pc_cols[2], int):
+            ct = pc_df.iloc[:, pc_cols[2]]
+        elif isinstance(pc_cols[2], str):
+            ct = pc_df[pc_cols[2]]
+        else:
+            raise TypeError(f"Invalid type for ct column index. Must be int or str, type {type(pc_cols[2])} passed.")
+        
+        pc = cls(wind_speed=wind_speed, power=power, ct=ct)
+        
+        return pc
