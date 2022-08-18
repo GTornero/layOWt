@@ -85,9 +85,11 @@ class PowerCurve:
                            "curve_type": None}
         
         if cut_in is None:
-            self.attributes["cut_in"] = cut_in = self.data[self.data["power"]!=0].index[0]
+            self.attributes["cut_in"] = self.data[self.data["power"]!=0].index[0]
         if cut_out is None:
-            self.attributes["cut_out"] = cut_in = self.data[self.data["power"]!=0].index[-1]
+            self.attributes["cut_out"] = self.data[self.data["power"]!=0].index[-1]
+        if rated_ws is None:
+            self.attributes["rated_ws"] = self.data.index[self.data["power"] == self.attributes["rated_power"]].min()
 
     def set_hub_height(self, hub_height: float) -> None:
         """
