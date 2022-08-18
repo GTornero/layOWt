@@ -80,7 +80,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy-1.8.1/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "py_wake": ("https://topfarm.pages.windenergy.dtu.dk/PyWake/", None),
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
