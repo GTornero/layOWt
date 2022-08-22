@@ -11,6 +11,7 @@ This page assumes that you are already familiar with the LayOWt installation pro
 Tutorial 1: Generating a Grid <notebooks/grid_tutorial>
 Tutorial 2: The Layout Object <notebooks/layout_tutorial>
 Tutorial 3: Procedural Generation of Gridded Layouts <notebooks/GriddedLayoutGenerator_tutorial>
+Tutorial 4: The PowerCurve Object <notebooks/PowerCurve_tutorial>
 ```
 
 ## [Tutorial 1: Generating a Grid](notebooks/grid_tutorial)
@@ -26,3 +27,5 @@ This section will cover the many ways to create a `Layout` and how to carry out 
 
 This tutorial introduces you to LayOWt's layout generators, and how to use them to quickly produce many `Layout` configurations in only a few lines of code.
 This will cover the specific `GriddedLayoutGenerator` objects that uses `Grid` objects to define layouts.
+
+## [Tutorial 4: The PowerCurve Object](notebooks/PowerCurve_tutorial)
