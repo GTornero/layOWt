@@ -569,7 +569,7 @@ class PowerCurve:
             identifying the column by a header, or an int if identifying columns by index (first 
             index starting at 0). If strings are passed, the text file must contain headers. If int
             are passed, make sure to pass the keyword argument header=None to avoid losing the
-            first row of data. By default (0, 1, 2).
+            first row of data if there are no headers in the text file. By default (0, 1, 2).
         **kwargs
             Additional kewword arguments to pass as keyword arguments to :func:`pandas.read_csv`.
 
