@@ -56,6 +56,25 @@ class GriddedLayoutGenerator:#
         Minimum and maximum bathymetry values, in the raster file units, for layout positions to be considered valid, by default (0., 60.).
     bathymetry_drop_na : bool, optional
         If True, consider layout positions with nan values as invalid. By default False.
+    
+    Attributes
+    ----------
+    _grid_instructions : dict
+        Attributes: Ordered dictionary of the parameters used to create all grids.
+    n_wtg : int
+        Attribute: The target number of layout positions.
+    areas : list[Polygon | MultiPolygon]
+        Attribute: List of buildable area geometries of the layouts.
+    exclusions : list[Polygon | MultiPolygon]
+        Attribute: List of exclusion area geometries of the layouts.
+    bathymetry_path : str
+        Attribute: filepath of the bathymetry dataset.
+    bathymetry_limits: tuple(float, float)
+        Attribute: Tuple of minimum and maximum allowable bathymetry values for valid layout positions.
+    bathymetry_sign : str
+        Attribute: Sign ("+" or "-") in which bathymetry values are represented.
+    bathymetry_drop_na : bool
+        Attributes: If layout positions at locations of missing bathymetry have been removed.
     """
     def __init__(self,
                  n_rows: int = 10,

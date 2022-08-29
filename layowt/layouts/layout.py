@@ -49,6 +49,27 @@ class Layout:
     Polygon : Shapely Polygon object.
     MultiPolygon : Shapely MultiPolygon object.
     py_wake.wind_turbines.WindTurbines : Set of multiple py_wake wind turbines.
+    
+    Attributes
+    ----------
+    grid : Grid
+        Attribute: Underlying grid to the layout. None for layouts not created from a grid.
+    area : list[Polygon | MultiPolygon]
+        Attrbute: List of buildable area geometries of the layout.
+    exclusion : list[Polygon | MultiPolygon]
+        Attribute: List of exclusion area geometries of the layout.
+    bathymetry_path : str
+        Attribute: filepath of the layout's bathymetry dataset.
+    bathymetry_limits: tuple(float, float)
+        Attribute: Tuple of minimum and maximum allowable bathymetry values for valid layout positions.
+    bathymetry_sign : str
+        Attribute: Sign ("+" or "-") in which bathymetry values are represented.
+    bathymetry_drop_na : bool
+        Attributes: If layout positions at locations of missing bathymetry have been removed.
+    samples : list[float]
+        Attribute: List of sampled bathymetry values at the layout positions.
+    geom : MultiPoint
+        Attribute: MultiPoint geometry representation of the layout positions.
     """
 
     def __init__(
