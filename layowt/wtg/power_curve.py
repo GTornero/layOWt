@@ -120,7 +120,7 @@ class PowerCurve:
         Active Directory authentication. When first called in a session, a authentication window
         will pop up asking for user credentials to connect to the database.
         
-        The OW VPN must be active for a successful database connection.
+        The OW VPN does not need to be active for a successful database connection.
 
         Parameters
         ----------
