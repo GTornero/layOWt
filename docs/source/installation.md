@@ -9,11 +9,12 @@ The following steps are recommended for a successful installation:
 4. Download the latest LayOWt version from the project [GitHub](https://github.com/GTornero/layOWt).
 5. Install the downloaded LayOWt package with `pip`.
 
+(creating_virtual_env)=
 ## 1. Creating a Virtual Environment
 
 First step is to create a new virtual environment using `venv` for example, which comes installed by default with any python installation as it is part of the standard library.
 
-Open the `command prompt` at the desired destination folder of your environment, or navigate to is using the `cd` command.
+Open the `command prompt` at the desired destination folder of your environment, or navigate to it using the `cd` command.
 Note that if you have mutiple versions of python installed, you can choose which version to use when creating this environment.
 You can see all installed versions of python using the following command:
 
@@ -46,7 +47,7 @@ To activate this virtual environment, use the following command if using Windows
 [path/to/venv]/Scripts/Activate.ps1
 ```
 
-If using the cmd Shell, use the following command:
+If using the command prompt Shell, use the following command:
 
 ```console
 [path/to/venv]/Scripts/activate.bat
@@ -114,3 +115,10 @@ If you wish to install the LayOWt package in editable mode, you can run:
 ```console
 (LayOWt-venv) pip install -e .[doc]
 ```
+
+## 6. Using LayOWt
+
+When running any code that depends on `layowt`, you must make sure to have the correct virtual environment active for it to work properly.
+If you try to execute any `layowt`dependent code from an environment where `layowt` is not installed, the code will not be recognised.
+
+To activate the correct `layowt` environment, you can use the same activation commands from section {ref}`Creating a Virtual Environment <creating_virtual_env>`
