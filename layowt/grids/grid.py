@@ -50,6 +50,31 @@ class Grid:
     scale : float, optional
         Factor by which to convert the non-dimensional row_step and col_step
         distances into the real space, by default 1.
+    
+    Attributes
+    ----------
+    n_rows: int
+        Attribute: Number of rows of points in the grid.
+    n_cols: int
+        Attribute: Number of columns of points in the grid.
+    row_step: float
+        Attribute: Non-dimensional distance between rows of points in the grid.
+    col_step: float
+        Attribute: Non-dimensional distance between columns of points in the grid.
+    row_offset: bool
+        Attribute: Indicator if rows are offset from each other by half the col_step.
+    col_offset: bool
+        Attribute: Indicator if columns are offset from each other by half the row_step.
+    angle: float
+        Attribute: Clockwise angle from the y-axis of the grid columns in degrees.
+    x_shear: float
+        Attribute: Horizontal shear angle of the grid in degrees.
+    y_shear: float
+        Attribute: Vertical shear angle of the grid in degrees.
+    origin: tuple
+        Attribute: (x,y) coordinate pair of the centroid of the grid.
+    scale: float
+        Attribute: Factor by which to convert the non-dimensional coordinates into the real space.
     """
 
     def __init__(
