@@ -11,16 +11,9 @@ The following steps are recommended for a successful installation:
 
 ## 1. Creating a Virtual Environment
 
-First step is to create a new virtual environment using `venv` for example.
+First step is to create a new virtual environment using `venv` for example, which comes installed by default with any python installation as it is part of the standard library.
 
-If `venv` is not installed, you can install it using `pip` with the following command:
-
-```console
-pip install venv
-```
-
-Once `venv` is installed on your machine, you can create a new environment.
-Open the `cmd` at the desired destination folder of your environment.
+Open the `command prompt` at the desired destination folder of your environment, or navigate to is using the `cd` command.
 Note that if you have mutiple versions of python installed, you can choose which version to use when creating this environment.
 You can see all installed versions of python using the following command:
 
@@ -34,7 +27,8 @@ Installed Pythons found by C:\WINDOWS\py.exe Launcher for Windows
 
 It is recommended to use python versions 3.10 and above for LayOWt.
 
-You can create a virtual environment using the following command:
+You can create a virtual environment using the following command (the prompt "LayOWt-venv" serves as an identifier that
+lets us know what environment is active. Feel free to name this whatever you like):
 
 ```console
 python -m venv [path/to/venv] --prompt "LayOWt-venv"
