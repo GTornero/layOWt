@@ -348,18 +348,19 @@ class PowerCurve:
         curve_id = root.attrib["Description"]
         manufacturer = root.attrib["ManufacturerName"]
         rotor_diameter = float(root.attrib["RotorDiameter"])
-        hub_height = float(root[1][0].text)
-        air_density = float(root[2].attrib["AirDensity"])
-        curve_date = date.fromisoformat(root[2].attrib["ReleaseDate"])
-        revision = int(root[2].attrib["DataStatus"])
-        ref_document_id = root[2].attrib["DataSource"]
-        cut_in = float(root[2][0].attrib["LowSpeedCutIn"])
-        cut_out = float(root[2][0].attrib["HighSpeedCutOut"])
+        hub_height = float(root.find("SuggestedHeights").find("Height").text)
+        air_density = float(root.find("PerformanceTable").attrib["AirDensity"])
+        curve_date = date.fromisoformat(root.find("PerformanceTable").attrib["ReleaseDate"])
+        revision = int(root.find("PerformanceTable").attrib["DataStatus"])
+        ref_document_id = root.find("PerformanceTable").attrib["DataSource"]
+        cut_in = float(root.find("PerformanceTable").find("StartStopStrategy").attrib["LowSpeedCutIn"])
+        cut_out = float(root.find("PerformanceTable").find("StartStopStrategy").attrib["HighSpeedCutOut"]
+)
         
         wind_speed = []
         power = []
         ct = []
-        for data_point in root[2][2]:
+        for data_point in root.find("PerformanceTable").find("DataTable").iter("DataPoint"):
             wind_speed.append(float(data_point.attrib["WindSpeed"]))
             power.append(float(data_point.attrib["PowerOutput"]) / 1000)
             ct.append(float(data_point.attrib["ThrustCoEfficient"]))
