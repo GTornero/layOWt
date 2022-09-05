@@ -36,12 +36,16 @@ First official release of LayOWt!
 - {class}`layowt.layouts.layout.Layout` class:
     - {meth}`layowt.layouts.layout.Layout.plot()` method now uses {class}`geopandas.GeoDataFrame` plotting functionality for simpler logic on multipolygons.
 - {func}`layowt.aep.aep.weibull_aep()` function now takes in a LayOWt {class}`layowt.wtg.power_curve.PowerCurve` instead of a PyWake WindTurbine.
+- {func}`layowt.layouts.utils.layouts_to_legacy_csv()` function now exports all grid parameters of the layout to the INFO file.
 
  
 ### Fixed
 - {class}`layowt.layouts.layout.Layout` class:
     - {meth}`layowt.layouts.layout.Layout.plot()` method now does not raise an {exc}`AttributeError` if there are no turbines to plot. Plots an empty figure with no turbines.
     - All methods that take epsg codes now check for valid codes against the PROJ EPSG CRS database.
+- Tutorials:
+    - tutorial_inputs folder added to the repository with all example data used throughout the tutorials. Tutorial notebooks can now be executed locally with all the example data.
+    - Updated the `Layout` class tutorial with latest CRS cahnges to the `Layout` class.
 
 
 

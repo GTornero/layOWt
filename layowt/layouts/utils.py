@@ -127,7 +127,10 @@ def layouts_to_legacy_csv(layouts: list[Layout], filepath: str = "layouts.csv") 
     layout_info = []
     for i, layout in enumerate(layouts):
         layout_data += list(zip(np.ones(layout.n_wtg)*i, layout.x, layout.y))
-        layout_info.append([i, layout.grid.angle, layout.grid.row_step, layout.grid.col_step])
+        layout_info.append([i, layout.grid.angle, layout.grid.row_step, layout.grid.col_step,
+                            layout.grid.row_offset, layout.grid.col_offset, layout.grid.x_shear,
+                            layout.grid.y_shear, layout.grid.origin[0], layout.grid.origin[1],
+                            layout.grid.scale])
         
     layout_df = pd.DataFrame(layout_data)
     layout_df[3] = 1
@@ -135,7 +138,8 @@ def layouts_to_legacy_csv(layouts: list[Layout], filepath: str = "layouts.csv") 
     layout_df.to_csv(filepath, index=False)
     
     layout_info_df = pd.DataFrame(layout_info)
-    layout_info_df.columns = ["id", "angle", "row", "col"]
+    layout_info_df.columns = ["id", "angle", "row", "col", "row_offset", "col_offset", "x_shear",
+                              "y_shear", "origin_x", "origin_y", "scale"]
     layout_info_df.to_csv("INFO_" + filepath, index=False)
 
 def reproject_raster(filepath: str, output_path: str, target_epsg: int, resample_method: int = 0) -> None:
