@@ -12,7 +12,6 @@ import pyproj
 import rasterio
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from py_wake.wind_turbines import WindTurbine
 from rasterio.errors import CRSError
 from rasterio.plot import show
 from shapely.geometry import (MultiPoint, MultiPolygon, Point, Polygon,
@@ -44,14 +43,11 @@ class Layout:
     exclusions : list[Polygon  |  MultiPolygon] | None, optional
         List of Shapely Polygons or MultiPolygons used to define exclusion
         zones where turbines cannot be placed, by default None.
-    wtg : str
-        Filepath for the .wtg file to load, by default None.
     
     See Also
     --------
     Polygon : Shapely Polygon object.
     MultiPolygon : Shapely MultiPolygon object.
-    py_wake.wind_turbines.WindTurbines : Set of multiple py_wake wind turbines.
     
     Attributes
     ----------
@@ -84,8 +80,7 @@ class Layout:
         grid: Grid | None = None,
         epsg: int | None = None,
         areas: list[Polygon | MultiPolygon] | None = None,
-        exclusions: list[Polygon | MultiPolygon] | None = None,
-        wtg: str | None = None,
+        exclusions: list[Polygon | MultiPolygon] | None = None
     ) -> None:
         """__init__ Initialises the Layout class instance.
         """
@@ -126,11 +121,6 @@ class Layout:
         else:
             self.exclusion = None
 
-        if wtg is not None:
-            self.wtg = WindTurbine.from_WAsP_wtg(wtg)
-        else:
-            self.wtg = None
-
     @classmethod
     def from_shapefile(cls, filepath: str, target_epsg: int | None = None) -> "Layout":
         """from_shapefile Alternate constructor to read a shapefile into a Layout object.
@@ -158,12 +148,12 @@ class Layout:
         
         with fiona.open(filepath) as src:
             geoms = [shape(rec["geometry"]) for rec in src]
-            src_crs = pyproj.CRS(src.crs)
+            src_crs = pyproj.CRS(src.crs_wkt)
             layout_epsg = src_crs.to_epsg()
         
         if target_epsg is not None:
             layout_epsg = target_epsg
-            target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+            target_crs = pyproj.CRS.from_epsg(target_epsg)
             crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
             transformed_geoms = []
             for geom in geoms:
@@ -306,7 +296,7 @@ class Layout:
                 raise CRSError(f"{target_epsg=} not a valid EPSG code.")
             layout_epsg = target_epsg
             src_crs = data.crs
-            target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+            target_crs = pyproj.CRS.from_epsg(target_epsg)
             crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
             geom = transform(crs_transformer.transform, geom)
         
@@ -867,24 +857,6 @@ class Layout:
 
         return fig, ax
 
-    def load_wtg(self, file: str) -> None:
-        """load_wtg Loads a WAsP .wtg file into the layout as a py_wake WindTurbine object.
-
-        Parameters
-        ----------
-        file : str
-            Filepath for the .wtg file to load.
-
-        Returns
-        -------
-        None
-        
-        See Also
-        --------
-        py_wake.wind_turbines.WindTurbines : Set of multiple py_wake wind turbines.
-        """
-        self.wtg = WindTurbine.from_WAsP_wtg(file)
-        return None
 
     def to_shapefile(self, filepath: str, epsg: int) -> None:
         """to_shapefile Saves the Layout Point geometries as a Shapefile.
