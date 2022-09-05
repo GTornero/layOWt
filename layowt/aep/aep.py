@@ -5,14 +5,17 @@ from layowt.wtg.power_curve import PowerCurve
 from scipy.integrate import simpson
 
 
-def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str = "GWh") -> float:
-    """weibull_aep This function calculates the gross AEP using a LayOWt PowerCurve and a Weibull distribution.
-    The method integrates the result of dicrete function resulting from the multiplication of the PowerCurve power
-    curve and the 2-parameter Weibull probability density function. The integration is carried out using Simpon's
-    rule as implemented in Scipy.integrate.simpson. The calculted AEP can be reported in Wh, kWh, MWh, and GWh.
+def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str = "GWh", leap_year: bool=True) -> float:
+    """
+    This function calculates the gross AEP using a LayOWt PowerCurve and a Weibull distribution.
+    The method integrates the result of the dicrete function resulting from the multiplication of
+    the number of hours in a year, the PowerCurve power curve, and the 2-parameter Weibull
+    probability density function. The integration is carried out using Simpon's rule as implemented
+    in Scipy.integrate.simpson. The calculted AEP can be reported in Wh, kWh, MWh, and GWh.
+    
 
     .. math::
-        aep = \\displaystyle \\int_{cut-in}^{cut-out} P(ws)PC(ws) dws
+        aep = \\displaystyle [hours\_in\_year]\\int_{cut-in}^{cut-out} P(ws)PC(ws) dws
 
     Where the Weibull distribution Probability Density Function is given by:
 
@@ -29,6 +32,8 @@ def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str =
         The 2-parameter Weibull shape parameter.
     units : str, optional
         Units in which to report the calculated AEP. Must be one of "Wh", "kWh", "MWh", or "GWh" (case insensitive), by default "GWh".
+    leap_year : bool, Optional
+        If True, the number of hours in a year used in the calculation is 8766, otherwise 8760, by default True.
 
     Returns
     -------
@@ -61,12 +66,17 @@ def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str =
 
     if units.lower() not in ["gwh", "mwh", "kwh", "wh"]:
         raise ValueError(f'units must be in ["gwh", "mwh", "kwh", "wh"]. {units=} passed.')
+    
+    if leap_year:
+        hours_in_year = 8766
+    else:
+        hours_in_year = 8760
 
     power_scale_factor = {"gwh": 1e6, "mwh": 1e3, "kwh": 1, "wh": 1e-3}[units.lower()]
 
     wind_speed_bins = pc.data.index
     power = pc.data["power"]
     weibull_dist = weibull_k / weibull_a * (wind_speed_bins / weibull_a)**(weibull_k-1) * np.exp(-(wind_speed_bins/weibull_a)**weibull_k)
-    aep = 8766*simpson(weibull_dist*power, wind_speed_bins)
+    aep = hours_in_year*simpson(weibull_dist*power, wind_speed_bins)
 
     return aep / power_scale_factor
