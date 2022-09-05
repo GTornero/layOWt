@@ -29,3 +29,10 @@ This tutorial introduces you to LayOWt's layout generators, and how to use them 
 This will cover the specific `GriddedLayoutGenerator` objects that uses `Grid` objects to define layouts.
 
 ## [Tutorial 4: The PowerCurve Object](notebooks/PowerCurve_tutorial)
+
+This tutorial introduces LayOWt's `PowerCurve` object. This object brings some handy functionality to easily interact with OW's internal power curve database
+for both commercial and internally extrapolated turbines and their power curves. The `PowerCurve` object can be created from text data, from the database,
+or from the commonly used DTU WAsP .wtg format. Can also be easily exported into these same formats.
+
+Common day-to-day tasks can also be easliy carried out using its methods, taks such as power curve interpolation and AEP calculations.
+
