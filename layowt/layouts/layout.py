@@ -794,7 +794,10 @@ class Layout:
         int
             Number of valid points in the Layout.
         """
-        return len(self.geom.geoms)  # type: ignore
+        if self.geom.is_empty:
+            return 0
+        else:
+            return len(self.geom.geoms)  # type: ignore
 
     def plot(
         self, ax: Axes | None = None, figsize: tuple = (8, 6), show_bathy: bool = False
