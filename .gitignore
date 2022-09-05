@@ -69,6 +69,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
+# this project saves the docs in docs/build -> might need to update this line.
 docs/_build/
 
 # PyBuilder
