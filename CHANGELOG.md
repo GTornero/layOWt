@@ -13,8 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 First official release of LayOWt!
  
 ### Added
-- {meth}`layowt.layouts.layout.Layout.load_bathymetry()` and {meth}`layowt.layouts.layout.Layout.apply_bathymetry()` methods now store the bathymetry values in the {attr}`layowt.layouts.layout.Layout.samples` class attribute.
-- {mod}`layowt.wtg` module
+- {class}`layowt.layouts.layout.Layout` class:
+    - {meth}`layowt.layouts.layout.Layout.load_bathymetry()` and {meth}`layowt.layouts.layout.Layout.apply_bathymetry()` methods now store the bathymetry values in the {attr}`layowt.layouts.layout.Layout.samples` class attribute.
+    - {meth}`layowt.layouts.layout.Layout.load_bathymetry()` and {meth}`layowt.layouts.layout.Layout.apply_bathymetry()` methods now reproject layout coordinates in the background if the raster CRS is different from the layout CRS.
+    - Layout CRS EPSG code now stored in the {attr}`layowt.layouts.layout.Layout.epsg` attribute.
+    - Layout bathymetry CRS EPSG code now stored in the {attr}`layowt.layouts.layout.Layout.bathymetry_epsg` attribute.
+- New {mod}`layowt.wtg` module:
     - {class}`layowt.wtg.power_curve.PowerCurve` class with the capability to create power curves from the OW database directly.
         - {meth}`layowt.wtg.power_curve.PowerCurve.set_hub_height()` method to set the hub height on a {class}`layowt.wtg.power_curve.PowerCurve` instance.
         - {meth}`layowt.wtg.power_curve.PowerCurve.database_engine()` static method to create a {class}`sqlalchemy.engine.Engine` database connection to the corporate OW power curve database.
@@ -29,12 +33,15 @@ First official release of LayOWt!
 - Documentation now has links to source code.
 
 ### Changed
- - {meth}`layowt.layouts.layout.Layout.plot()` method now uses {class}`geopandas.GeoDataFrame` plotting functionality for simpler logic on multipolygons.
- - {func}`layowt.aep.aep.weibull_aep()` function now takes in a LayOWt {class}`layowt.wtg.power_curve.PowerCurve` instead of a PyWake WindTurbine.
+- {class}`layowt.layouts.layout.Layout` class:
+    - {meth}`layowt.layouts.layout.Layout.plot()` method now uses {class}`geopandas.GeoDataFrame` plotting functionality for simpler logic on multipolygons.
+- {func}`layowt.aep.aep.weibull_aep()` function now takes in a LayOWt {class}`layowt.wtg.power_curve.PowerCurve` instead of a PyWake WindTurbine.
 
  
 ### Fixed
-- {meth}`layowt.layouts.layout.Layout.plot()` method now does not raise an {exc}`AttributeError` if there are no turbines to plot. Plots an empty figure with no turbines.
+- {class}`layowt.layouts.layout.Layout` class:
+    - {meth}`layowt.layouts.layout.Layout.plot()` method now does not raise an {exc}`AttributeError` if there are no turbines to plot. Plots an empty figure with no turbines.
+    - All methods that take epsg codes now check for valid codes against the PROJ EPSG CRS database.
 
 
 

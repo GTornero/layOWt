@@ -42,6 +42,8 @@ class GriddedLayoutGenerator:#
         An iterable of factors by which to convert the non-dimensional Grid distances into the real space. Will iterate over all passed scales for all Grid parameters. By default np.arange(250, 251).
     n_wtg : int | None, optional
         Target number of valid layout positions. Used to filter only the resulting Layouts with the desired number of positions. By default None.
+    epsg : int | None, optional
+        EPSG code for the layout coordinates.
     areas : list[Polygon  |  MultiPolygon], optional
         List of Shapely Polygons or MultiPolygons used to define the buildable areas. The generator wll take care to clip all layout positions to these areas. By default None.
     exclusions : list[Polygon  |  MultiPolygon], optional
@@ -63,6 +65,8 @@ class GriddedLayoutGenerator:#
         Attributes: Ordered dictionary of the parameters used to create all grids.
     n_wtg : int
         Attribute: The target number of layout positions.
+    epsg : int
+        Attribute: EPSG code for the layout coordinates.
     areas : list[Polygon | MultiPolygon]
         Attribute: List of buildable area geometries of the layouts.
     exclusions : list[Polygon | MultiPolygon]
@@ -89,6 +93,7 @@ class GriddedLayoutGenerator:#
                  origins: list[tuple[float, float]] = [(0, 0)],
                  scales: Iterable[float] = np.arange(250, 251),
                  n_wtg: int | None = None,
+                 epsg: int | None = None,
                  areas: list[Polygon | MultiPolygon] | None = None,
                  exclusions: list[Polygon | MultiPolygon] | None = None,
                  bathymetry_path: str | None = None,
@@ -116,6 +121,7 @@ class GriddedLayoutGenerator:#
         
         self._grid_instructions = instructions
         self.n_wtg = n_wtg
+        self.epsg = epsg
         self.areas = areas
         self.exclusions = exclusions
         self.bathymetry_path = bathymetry_path
@@ -212,7 +218,7 @@ class GriddedLayoutGenerator:#
         if self.bathymetry_path is not None:
             with rasterio.open(self.bathymetry_path, mode='r') as dataset:
                 for grid in grid_gen:
-                    layout = Layout(grid, areas=self.areas, exclusions=self.exclusions)
+                    layout = Layout(grid, areas=self.areas, exclusions=self.exclusions, epsg=self.epsg)
                     
                     layout.apply_bathymetry(dataset,
                                             sign=self.bathymetry_sign,
@@ -220,7 +226,6 @@ class GriddedLayoutGenerator:#
                                             limits=self.bathymetry_limits,
                                             drop_na=self.bathymetry_drop_na
                                             )
-                    layout.bathymetry_path = self.bathymetry_path
                         
                     if self.n_wtg is None:
                         layouts.append(layout)
@@ -228,7 +233,7 @@ class GriddedLayoutGenerator:#
                         layouts.append(layout)
         else:
             for grid in grid_gen:
-                layout = Layout(grid, areas=self.areas, exclusions=self.exclusions)
+                layout = Layout(grid, areas=self.areas, exclusions=self.exclusions, epsg=self.epsg)
                     
                 if self.n_wtg is None:
                     layouts.append(layout)

@@ -13,6 +13,7 @@ import rasterio
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from py_wake.wind_turbines import WindTurbine
+from rasterio.errors import CRSError
 from rasterio.plot import show
 from shapely.geometry import (MultiPoint, MultiPolygon, Point, Polygon,
                               mapping, shape)
@@ -35,6 +36,8 @@ class Layout:
     ----------
     grid : Grid | None, optional
         Grid object used to define the Layout, by default None.
+    epsg : int | None, optional
+        EPSG code for the layout coordinates.
     areas : list[Polygon  |  MultiPolygon] | None, optional
         List of Shapely Polygons or MultiPolygons used to define the lease
         areas, by default None.
@@ -54,6 +57,8 @@ class Layout:
     ----------
     grid : Grid
         Attribute: Underlying grid to the layout. None for layouts not created from a grid.
+    epsg : int
+        Attribute: EPSG code of the layout coordinate system.
     area : list[Polygon | MultiPolygon]
         Attrbute: List of buildable area geometries of the layout.
     exclusion : list[Polygon | MultiPolygon]
@@ -66,6 +71,8 @@ class Layout:
         Attribute: Sign ("+" or "-") in which bathymetry values are represented.
     bathymetry_drop_na : bool
         Attributes: If layout positions at locations of missing bathymetry have been removed.
+    bathymetry_epsg : int
+        Attribute: EPSG code of the bathymetry raster file.
     samples : list[float]
         Attribute: List of sampled bathymetry values at the layout positions.
     geom : MultiPoint
@@ -75,17 +82,24 @@ class Layout:
     def __init__(
         self,
         grid: Grid | None = None,
+        epsg: int | None = None,
         areas: list[Polygon | MultiPolygon] | None = None,
         exclusions: list[Polygon | MultiPolygon] | None = None,
         wtg: str | None = None,
     ) -> None:
         """__init__ Initialises the Layout class instance.
         """
+        # TODO: need to make epsg a class property, and only allow it to be set to valid epsg numbers.
         self.grid = grid
+        if _is_epsg(epsg) or epsg is None:
+            self.epsg = epsg
+        else:
+            raise CRSError(f"{epsg=} not a valid EPSG code.")
         self.bathymetry_path = None
         self.bathymetry_limits = None
         self.bathymetry_sign = None
         self.bathymetry_drop_na = None
+        self.bathymetry_epsg = None
         self.samples = None
 
         if grid is not None:
@@ -133,12 +147,22 @@ class Layout:
         -------
         Layout
             Layout object created from the shapefile.
+        
+        Raises
+        ------
+        CRSError
+            If target_epsg is not a valid EPSG code.
         """
+        if not _is_epsg(target_epsg) and target_epsg is not None:
+            raise CRSError(f"{target_epsg=} not a valid EPSG code.")
+        
         with fiona.open(filepath) as src:
             geoms = [shape(rec["geometry"]) for rec in src]
             src_crs = pyproj.CRS(src.crs)
+            layout_epsg = src_crs.to_epsg()
         
         if target_epsg is not None:
+            layout_epsg = target_epsg
             target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
             crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
             transformed_geoms = []
@@ -150,7 +174,7 @@ class Layout:
 
         if all(isinstance(x, (Point, MultiPoint)) for x in geoms):
             geoms = unary_union(geoms)
-            layout = cls()
+            layout = cls(epsg=layout_epsg)
             layout._raw_geom = geoms
             layout.geom = geoms
             return layout
@@ -182,17 +206,31 @@ class Layout:
         -------
         Layout
             Layout object created from the text file.
+        
+        Raises
+        ------
+        CRSError
+            If source_epsg or target_epsg are not valid EPSG codes.
         """
+        if not _is_epsg(source_epsg) and source_epsg is not None:
+            raise CRSError(f"{source_epsg=} not a valid EPSG code.")
+        elif not _is_epsg(target_epsg) and target_epsg is not None:
+            raise CRSError(f"{target_epsg=} not a valid EPSG code.")
+        
         data = pd.read_csv(filepath, **kwargs)
         geom = MultiPoint(list(zip(data[x_header], data[y_header])))  # type: ignore
+        layout_epsg = None
         
         if (source_epsg is not None) and (target_epsg is not None):
+            layout_epsg = target_epsg
             source_crs = pyproj.CRS("EPSG:" + str(source_epsg))
             target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
             crs_transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
             geom = transform(crs_transformer.transform, geom)
+        elif source_epsg is not None:
+            layout_epsg = source_epsg
         
-        layout = cls()
+        layout = cls(epsg=layout_epsg)
         layout._raw_geom = geom
         layout.geom = geom
         return layout
@@ -244,6 +282,8 @@ class Layout:
         ------
         TypeError
             If the unary union of all the PostGIS geometries does not result in a MultiPoint geometry. I.e. all geometries within the PostGIS table must be Point or MultiPoint.
+        CRSError
+            If target_epsg is not a valid EPSG code.
         """
         # TODO: Should change the geopandas method GeoDataFrame.from_postgis to geopandas.read_postgis
         db_string = f"postgresql://{username}:{password}@{host}/{db_name}"
@@ -255,18 +295,22 @@ class Layout:
             **kwargs,
         )
         geom = unary_union(data[geom_col])
+        layout_epsg = data.crs.to_epsg()
         if not isinstance(geom, MultiPoint):
             raise TypeError(
                 f"Table geometry type must be Point or MultiPoint to construct a Layout, not {data[geom_col].geom_type.iloc[0]}."
             )
         
         if target_epsg is not None:
+            if not _is_epsg(target_epsg):
+                raise CRSError(f"{target_epsg=} not a valid EPSG code.")
+            layout_epsg = target_epsg
             src_crs = data.crs
             target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
             crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
             geom = transform(crs_transformer.transform, geom)
         
-        layout = cls()
+        layout = cls(epsg=layout_epsg)
         layout._raw_geom = geom
         layout.geom = geom
         return layout
@@ -433,7 +477,13 @@ class Layout:
                         limits: tuple[float, float] = (0., 60.),
                         drop_na: bool = False
     ) -> "Layout":
-        """load_bathymetry Loads bathymetry data, stores the path, limits, and sign, and removes any invalid positions. Bathymetry values are stored in the `samples` attribute of the Layout instance.
+        """
+        Loads bathymetry data, stores the path, limits, and sign, and removes any invalid positions.
+        Bathymetry values are stored in the `samples` attribute of the Layout instance.
+        
+        If the raster data crs does not match the layout crs (and both the layout and raster data
+        have valid epsg codes) the layout coordinates will be reprojected on-the-fly to match the
+        raster projection and extract the sampled values. This reprojections does not change the layout instance.
 
         Parameters
         ----------
@@ -444,7 +494,7 @@ class Layout:
         band : int, optional
             Band number of the raster file containing bathymetry data, by default 1. Following the GDAL convention, bands are indexed from 1.
         limits : tuple[float, float], optional
-            Minimum and maximum bathymetry values, in the raster file units, for layout positions to be considered valid, by default (0., 60.).
+            Minimum and maximum bathymetry values (as positive values), in the raster file units, for layout positions to be considered valid, by default (0., 60.).
         drop_na : bool, optional
             If True, consider layout positions with nan values as invalid. By default False.
 
@@ -457,6 +507,8 @@ class Layout:
         ------
         ValueError
             If sign is not '-' or '+'.
+        CRSError
+            If the raster does not have a CRS with a valid ESPG code.
         
         See Also
         --------
@@ -472,7 +524,23 @@ class Layout:
             SIGN = {'-': -1, '+': 1}[sign]
             
             with rasterio.open(filepath, mode='r') as src:
-                samples = [sample[0]*SIGN for sample in src.sample(self.coords, indexes=band)]
+                if src.crs.is_epsg_code:
+                    self.bathymetry_epsg = src.crs.to_epsg()
+
+                if self.epsg != self.bathymetry_epsg and all((self.epsg, self.bathymetry_epsg)) and self.geom is not None:
+                    if not src.crs.is_epsg_code:
+                        raise CRSError("Raster CRS is not from a valid EPSG code.")
+                    source_crs = pyproj.CRS("EPSG:" + str(self.epsg))
+                    target_crs = pyproj.CRS("EPSG:" + str(self.bathymetry_epsg))
+                    crs_transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
+                    transformed_geom = transform(crs_transformer.transform, self.geom)
+                    coord_list = []
+                    for geom in transformed_geom.geoms:  # type: ignore
+                        coord_list.append([geom.x, geom.y])
+                else:
+                    coord_list = self.coords
+                
+                samples = [sample[0]*SIGN for sample in src.sample(coord_list, indexes=band)]
             
             if self.geom is not None:    
                 valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
@@ -496,20 +564,25 @@ class Layout:
                         band: int = 1,
                         limits: tuple[float, float] = (0., 60.),
                         drop_na: bool = False) -> "Layout":
-        """apply_bathymetry Alternative method to apply minimum and maximum bathymetry limits to a Layout. This method takes
+        """
+        Alternative method to apply minimum and maximum bathymetry limits to a Layout. This method takes
         in an open rasterio.IO.DatasetReader object. More efficient than :meth:`Layout.load_bathymetry` if applied within loops as this
         method avoids opening and closing the raster data file on every iteration.
+        
+        If the raster data crs does not match the layout crs (and both the layout and raster data
+        have valid epsg codes) the layout coordinates will be reprojected on-the-fly to match the
+        raster projection and extract the sampled values. This reprojections does not change the layout instance.
 
         Parameters
         ----------
         dataset : rasterio.io.DatasetReader
-            A rasterio.io.DatasetReader object in an open state.
+            An open rasterio.io.DatasetReader.
         sign : str, optional
             sign in which the bathymetry file represents water depths. By default '-' if bathymetry values are negative. Pass '+' if bathymetry values are positive.
         band : int, optional
             Band number of the raster file containing bathymetry data, by default 1. Following the GDAL convention, bands are indexed from 1.
         limits : tuple[float, float], optional
-            Minimum and maximum bathymetry values, in the raster file units, for layout positions to be considered valid, by default (0., 60.).
+            Minimum and maximum bathymetry values (as positive values), in the raster file units, for layout positions to be considered valid, by default (0., 60.).
         drop_na : bool, optional
             If True, consider layout positions with nan values as invalid. By default False.
 
@@ -524,6 +597,8 @@ class Layout:
             If dataset is in a closed state.
         ValueError
             If sign is not '-' or '+'.
+        CRSError
+            If the raster does not have a CRS with a valid EPSG code.
         
         See Also
         --------
@@ -559,7 +634,23 @@ class Layout:
         if not self.geom.is_empty:
             SIGN = {'-': -1, '+': 1}[sign]
             
-            samples = [sample[0]*SIGN for sample in dataset.sample(self.coords, indexes=band)]
+            if dataset.crs.is_epsg_code:
+                self.bathymetry_epsg = dataset.crs.to_epsg()
+            
+            if self.epsg != self.bathymetry_epsg and all((self.epsg, self.bathymetry_epsg)) and self.geom is not None:
+                if not dataset.crs.is_epsg_code:
+                    raise CRSError("Raster CRS is not from a valid EPSG code.")
+                source_crs = pyproj.CRS("EPSG:" + str(self.epsg))
+                target_crs = pyproj.CRS("EPSG:" + str(self.bathymetry_epsg))
+                crs_transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
+                transformed_geom = transform(crs_transformer.transform, self.geom)
+                coord_list = []
+                for geom in transformed_geom.geoms:  # type: ignore
+                    coord_list.append([geom.x, geom.y])
+            else:
+                coord_list = self.coords
+            
+            samples = [sample[0]*SIGN for sample in dataset.sample(coord_list, indexes=band)]
             
             if self.geom is not None:
                 valid_points = [point for i, point in enumerate(self.geom.geoms) if _valid_sample(samples[i], limits, drop_na)]
@@ -570,6 +661,7 @@ class Layout:
                     if _valid_sample(sample, limits, drop_na):
                         self.samples.append(sample)
         
+        self.bathymetry_path = dataset.files[0]
         self.bathymetry_sign = sign
         self.bathymetry_limits = limits
         self.bathymetry_drop_na = drop_na
@@ -636,6 +728,7 @@ class Layout:
             self.bathymetry_limits = None
             self.bathymetry_sign = None
             self.bathymetry_drop_na = None
+            self.bathymetry_epsg = None
             self.samples = None
             self._constrained = False
         if self.has_geom():
@@ -872,3 +965,6 @@ def _valid_sample(sample: float, limits: tuple[float, float], drop_na: bool) -> 
         return (sample >= limits[0]) and (sample <= limits[1])
     else:
         return ((sample >= limits[0]) and (sample <= limits[1]) or sample is np.nan)
+
+def _is_epsg(epsg: int) -> bool:
+    return str(epsg) in pyproj.database.get_codes("EPSG", pyproj.enums.PJType("CRS"))
