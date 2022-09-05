@@ -33,10 +33,10 @@ def geoms_from_shapefile(filepath: str, target_epsg: int | None = None) -> list:
     """
     with fiona.open(filepath) as src:
         geoms = [shape(rec["geometry"]) for rec in src]
-        src_crs = pyproj.CRS(src.crs)
+        src_crs = pyproj.CRS(src.crs_wkt)
         
     if target_epsg is not None:
-        target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+        target_crs = pyproj.CRS.from_epsg(target_epsg)
         crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
         transformed_geoms = []
         for geom in geoms:
