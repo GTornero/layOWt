@@ -3,6 +3,8 @@
     <em>Multi-disciplinary Offshore Wind Farm Layout Design in Python</em>
 </p>
 
+![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/GTornero/layOWt?include_prereleases&label=version) ![GitHub all releases](https://img.shields.io/github/downloads/GTornero/layOWt/total?style=plastic)
+![GitHub repo size](https://img.shields.io/github/repo-size/GTornero/layOWt) 
 # About
 
 **Documentation:** [ReadTheDocs](https://layowt.readthedocs.io/en/latest/?)
