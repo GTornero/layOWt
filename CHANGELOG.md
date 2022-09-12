@@ -8,6 +8,33 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
+## [0.2.0] - [INSERT DATE HERE!]
+ 
+LayOWt Version 0.2.0
+
+Please test away and send your feedback!
+ 
+### Added
+- {func}`layowt.aep.aep.weibull_wpd` function.
+- {class}`layowt.layouts.floating_layout.FloatingLayout` class:
+- {class}`layowt.layouts.layout.Layout` class:
+    - Now stores the attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band`.
+ 
+### Changed
+ 
+
+ 
+### Fixed
+- {class}`layowt.layouts.layout.Layout` class:
+    - Now the {meth}`layowt.layouts.layout.Layout.clip_to_area()` and {meth}`layowt.layouts.layout.Layout.avoid_exclusions()` methods
+    recalculate the bathymetry samples if they are applied to a layout with an existing bathymetry constraint. Previously the geometries
+    would update correctly, but the list of bathymetry samples corresponded to the values for the layout prior to the new area or
+    exclusion constraint being applied.
+    - The attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band` now
+
+
+
+=======================================================================
 ## [0.1.0] - [2022-09-05]
  
 First official release of LayOWt!
@@ -50,7 +77,7 @@ First official release of LayOWt!
 
 
 =======================================================================
-## [0.1.0-beta] - 2022-07-06
+## [0.1.0-beta] - [2022-07-06]
  
 First pre-release of LayOWt!
 

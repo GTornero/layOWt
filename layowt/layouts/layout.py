@@ -69,6 +69,8 @@ class Layout:
         Attributes: If layout positions at locations of missing bathymetry have been removed.
     bathymetry_epsg : int
         Attribute: EPSG code of the bathymetry raster file.
+    bathymetry_band : int
+        Attribute: Band number of the bathymetry raster file being used.
     samples : list[float]
         Attribute: List of sampled bathymetry values at the layout positions.
     geom : MultiPoint
@@ -84,7 +86,6 @@ class Layout:
     ) -> None:
         """__init__ Initialises the Layout class instance.
         """
-        # TODO: need to make epsg a class property, and only allow it to be set to valid epsg numbers.
         self.grid = grid
         if _is_epsg(epsg) or epsg is None:
             self.epsg = epsg
@@ -95,6 +96,7 @@ class Layout:
         self.bathymetry_sign = None
         self.bathymetry_drop_na = None
         self.bathymetry_epsg = None
+        self.bathymetry_band = None
         self.samples = None
 
         if grid is not None:
@@ -405,6 +407,13 @@ class Layout:
             self.area = area
 
         self.geom = self.geom.intersection(self.area)  # type: ignore
+        
+        if self.has_bathymetry():
+            self.load_bathymetry(filepath=self.bathymetry_path,
+                                 sign=self.bathymetry_sign,
+                                 band=self.bathymetry_band,
+                                 limits=self.bathymetry_limits,
+                                 drop_na=self.bathymetry_drop_na)
 
         return self
 
@@ -457,6 +466,13 @@ class Layout:
             self.exclusion = exclusion
 
         self.geom = self.geom.difference(self.exclusion)  # type: ignore
+        
+        if self.has_bathymetry():
+            self.load_bathymetry(filepath=self.bathymetry_path,
+                                 sign=self.bathymetry_sign,
+                                 band=self.bathymetry_band,
+                                 limits=self.bathymetry_limits,
+                                 drop_na=self.bathymetry_drop_na)
 
         return self
 
@@ -545,6 +561,7 @@ class Layout:
         self.bathymetry_sign = sign
         self.bathymetry_limits = limits
         self.bathymetry_drop_na = drop_na
+        self.bathymetry_band = band
             
         return self
 
@@ -655,6 +672,7 @@ class Layout:
         self.bathymetry_sign = sign
         self.bathymetry_limits = limits
         self.bathymetry_drop_na = drop_na
+        self.bathymetry_band = band
         
         return self
 
