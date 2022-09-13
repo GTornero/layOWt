@@ -30,7 +30,9 @@ Please test away and send your feedback!
     recalculate the bathymetry samples if they are applied to a layout with an existing bathymetry constraint. Previously the geometries
     would update correctly, but the list of bathymetry samples corresponded to the values for the layout prior to the new area or
     exclusion constraint being applied.
-    - The attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band` now
+    - The attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band` now stored as an attribute.
+- {class}`layowt.wtg.power_curve.PowerCurve class:
+    - Fixed errors when reading .wtg files without release dates or revision nyumbers using {meth}`layowt.wtg.power_curve.PowerCurve.from_wtg()`.
 
 
 
