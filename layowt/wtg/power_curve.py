@@ -287,7 +287,7 @@ class PowerCurve:
         wtg.set('RatedPower','%1.2e' % (1000 * self.attributes["rated_power"])) # kW to W (WAsP format) with power(10) format too.
         
         comment_1 = ET.SubElement(wtg, 'Comments')
-        comment_1.text = 'This XML file has been generated automatically by LayOWt version' + __version__
+        comment_1.text = 'This XML file has been generated automatically by LayOWt version ' + __version__
         
         h_heights = ET.SubElement(wtg, 'SuggestedHeights')
         h_height = ET.SubElement(h_heights, 'Height')
@@ -350,8 +350,14 @@ class PowerCurve:
         rotor_diameter = float(root.attrib["RotorDiameter"])
         hub_height = float(root.find("SuggestedHeights").find("Height").text)
         air_density = float(root.find("PerformanceTable").attrib["AirDensity"])
-        curve_date = date.fromisoformat(root.find("PerformanceTable").attrib["ReleaseDate"])
-        revision = int(root.find("PerformanceTable").attrib["DataStatus"])
+        try:
+            curve_date = date.fromisoformat(root.find("PerformanceTable").attrib["ReleaseDate"])
+        except KeyError:
+            curve_date = date.today()
+        try:
+            revision = int(root.find("PerformanceTable").attrib["DataStatus"])
+        except ValueError:
+            revision = "Unknown"
         ref_document_id = root.find("PerformanceTable").attrib["DataSource"]
         cut_in = float(root.find("PerformanceTable").find("StartStopStrategy").attrib["LowSpeedCutIn"])
         cut_out = float(root.find("PerformanceTable").find("StartStopStrategy").attrib["HighSpeedCutOut"]
