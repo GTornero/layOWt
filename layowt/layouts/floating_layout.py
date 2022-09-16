@@ -9,6 +9,7 @@ import numpy as np
 from layowt.grids import Grid
 from layowt.layouts.layout import Layout
 from shapely.geometry import MultiLineString, MultiPolygon, Polygon
+from shapely.ops import unary_union
 
 
 class FloatingLayout(Layout):
@@ -28,6 +29,7 @@ class FloatingLayout(Layout):
         self.mooring_origins = None
         self.mooring_anchors = None
         self.mooring_radii = None
+        self.mooring_area = None
     
     def _set_platform_bearing(self, platform_bearing: float | None) -> None:
         if platform_bearing is None:
@@ -65,7 +67,7 @@ class FloatingLayout(Layout):
         else:
             self.mooring_bearings = (np.array(mooring_bearings) + self.platform_bearing) % 360
     
-    def _calculate_mooring_origins(self) -> list[list[tuple[float, float]]]:
+    def _calculate_mooring_origins(self) -> None:
         mooring_origins = []
         for point in self.geom.geoms:
             local_origins = []
@@ -73,9 +75,9 @@ class FloatingLayout(Layout):
                 local_origins.append((offset[0] + point.x, offset[1] + point.y))
             mooring_origins.append(local_origins)
         
-        return mooring_origins
+        self.mooring_origins = mooring_origins
     
-    def _calculate_mooring_radii(self) -> np.ndarray:
+    def _calculate_mooring_radii(self) -> None:
         if callable(self.mooring_radius_func):
             if self.samples is None:
                 raise AttributeError("No bathymetry loaded for the layout.")
@@ -83,14 +85,14 @@ class FloatingLayout(Layout):
                 bathymetry = np.array(self.samples)
                 bathy_func = np.vectorize(self.mooring_radius_func)
                 radii = bathy_func(bathymetry)
-                return radii
+                self.mooring_radii = radii
         elif isinstance(self.mooring_radius_func, float) or isinstance(self.mooring_radius_func, int):
             radii = np.full(self.n_wtg, fill_value=self.mooring_radius_func)
-            return radii
+            self.mooring_radii = radii
         else:
             raise TypeError(f"Invalid type for radius. Must be float or callable. Type of {type(self.mooring_radius_func)} passed.")
     
-    def _calc_mooring_anchors(self) -> list[list[tuple[float, float]]]:
+    def _calc_mooring_anchors(self) -> None:
         mooring_anchors = []
         for platform_mooring_origins, radius in zip(self.mooring_origins, self.mooring_radii):
             platform_anchors = []
@@ -101,13 +103,13 @@ class FloatingLayout(Layout):
                 platform_anchors.append(anchor)
             mooring_anchors.append(platform_anchors)
         
-        return mooring_anchors
+        self.mooring_anchors = mooring_anchors
     
     def _generate_mooring_geometry(self) -> None:
         
-        self.mooring_origins = self._calculate_mooring_origins()
-        self.mooring_radii = self._calculate_mooring_radii()
-        self.mooring_anchors = self._calc_mooring_anchors()
+        self._calculate_mooring_origins()
+        self._calculate_mooring_radii()
+        self._calc_mooring_anchors()
         
         mooring_geom = []
         
@@ -127,24 +129,110 @@ class FloatingLayout(Layout):
                           avoid_exclusions: bool = False,
                           exclusions: list[Polygon | MultiPolygon] | None = None
                           ) -> None:
-        # TODO: refactor this into a MooringLayout class within the Floating Layout class.
+        
+        if not self.has_geom():
+            raise AttributeError("Layout has no point geometry to generate moorings from.")
+
         self.n_moorings = n_moorings
         self.mooring_radius_func = radius
-        # TODO:
-            # 1: set platform bearing
-        
         self._set_platform_bearing(platform_bearing)
-            # 2: set local mooring offsets
         self._set_mooring_offsets(mooring_offsets)
-            # 3: calculate mooring bearings / set mooring bearings
         self._set_mooring_bearings(mooring_bearings)
             # for each wtg position:
         self._generate_mooring_geometry()
                 # 4: calculate mooring origin location
                 # 5: calculate mooring radius
                 # 6: calculate anchor location
-                # 7: generate mooring geometry (list of lines or multiline??)
-                # 8: (optional) eliminate positions with moorings outside lease area
-                # 9: (optional) eliminate positions crossing exclusions (can be another exclusion layer)
-                # 10: (optional) eliminate positions with crossing moorings (which of the two positions involved in the crossing?)
+                # 7: generate mooring geometry (list of lines)
+    
+    def reset_moorings(self) -> "FloatingLayout":
+        self.mooring_geom = None
+        self.n_moorings = None
+        self.mooring_radius_func = None
+        self.platform_bearing = None
+        self.mooring_bearings = None
+        self.mooring_offsets = None
+        self.mooring_origins = None
+        self.mooring_anchors = None
+        self.mooring_radii = None
+        self.mooring_area = None
+        return self
+    
+    def has_moorings(self) -> bool:
+        return self.mooring_geom is not None
+    
+    def has_mooring_area(self) -> bool:
+        return self.mooring_area is not None
+    
+    def reset_mooring_area(self) -> "FloatingLayout":
+        
+        if self.has_mooring_area():
+            self.mooring_area = None
+            if self.has_geom():
+                self.geom = self._raw_geom
+                if self.has_area():
+                    self.clip_to_area(self.area)
+                if self.has_exclusion():
+                    self.avoid_exclusions(self.exclusion)
+                if self.has_bathymetry():
+                    self.load_bathymetry(
+                                        filepath=self.bathymetry_path,
+                                        limits=self.bathymetry_limits,
+                                        sign=self.bathymetry_sign,
+                                        drop_na=self.bathymetry_drop_na)
+            # TODO: clip moorings if required
+        return self
+    
+    def clip_moorings_to_area(self, areas: list[Polygon | MultiPolygon] | None = None, mode: str = "a") -> "FloatingLayout":
+        
+        if not self.has_moorings():
+            raise AttributeError(f"{self.__class__} has no moorings to clip.")
+        
+        if mode.lower() not in ["a", "w"]:
+            raise ValueError(f"mode must be 'a' or 'w'. Value of {mode=} passed.")
+        
+        if areas is None:
+            if not self.has_area():
+                raise AttributeError(f"No area geometries passed and {self.__class__} has no areas defined.")
+            else:
+                self.mooring_area = self.area
+        else:
+            area = unary_union(areas)
+            if self.has_mooring_area() and mode.lower() == 'a':
+                self.mooring_area = unary_union([self.mooring_area, area])
+            elif self.has_mooring_area() and mode.lower == 'w':
+                self.reset_mooring_area()
+                self.mooring_area = area
+            else:
+                self.mooring_area = area
+        
+        valid_points = []
+        valid_moorings = []
+        valid_mooring_origins = []
+        valid_mooring_anchors = []
+        valid_mooring_radii = []
+        if self.has_bathymetry():
+            valid_samples = []
+        
+        for i, mooring in enumerate(self.mooring_geom):
+            if mooring.within(self.mooring_area):
+                valid_points.append(self.geom.geoms[i])
+                valid_mooring_origins.append(self.mooring_origins[i])
+                valid_mooring_anchors.append(self.mooring_anchors[i])
+                valid_mooring_radii.append(self.mooring_radii[i])
+                valid_moorings.append(mooring)
+                if self.has_bathymetry():
+                    valid_samples.append(self.samples[i])
+        
+        self.geom = unary_union(valid_points)
+        self.mooring_origins = valid_mooring_origins
+        self.mooring_anchors = valid_mooring_anchors
+        self.mooring_radii = np.array(valid_mooring_radii)
+        self.mooring_geom = valid_moorings
+        self.samples = valid_samples
+        
+        return self
+    # 8: (optional) eliminate positions with moorings outside lease area
+    # 9: (optional) eliminate positions crossing exclusions (can be another exclusion layer)
+    # 10: (optional) eliminate positions with crossing moorings (which of the two positions involved in the crossing?)
             
