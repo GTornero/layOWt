@@ -1,7 +1,8 @@
 """ Initialise the layouts submodule.
 """
 
-from .layout import Layout
-from .layout_generators import GriddedLayoutGenerator
-from .utils import (geoms_from_postgis, geoms_from_shapefile,
-                    layouts_to_legacy_csv, reproject_raster)
+from layowt.layouts.floating_layout import FloatingLayout
+from layowt.layouts.layout import Layout
+from layowt.layouts.layout_generators import GriddedLayoutGenerator
+from layowt.layouts.utils import (geoms_from_postgis, geoms_from_shapefile,
+                                  layouts_to_legacy_csv, reproject_raster)
