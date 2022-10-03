@@ -12,11 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
  
 LayOWt Version 0.2.0
 
-Please test away and send your feedback!
+Added the FloatingLayout class and Moorings!
  
 ### Added
 - {func}`layowt.aep.aep.weibull_wpd` function.
-- {class}`layowt.layouts.floating_layout.FloatingLayout` class:
+- {class}`layowt.layouts.floating_layout.FloatingLayout` class: New Layout subclass with mooring design functionality!
 - {class}`layowt.layouts.layout.Layout` class:
     - Now stores the attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band`.
  
@@ -32,7 +32,8 @@ Please test away and send your feedback!
     exclusion constraint being applied.
     - The attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band` now stored as an attribute.
 - {class}`layowt.wtg.power_curve.PowerCurve class:
-    - Fixed errors when reading .wtg files without release dates or revision nyumbers using {meth}`layowt.wtg.power_curve.PowerCurve.from_wtg()`.
+    - Fixed errors when reading .wtg files without release dates or revision numbers using {meth}`layowt.wtg.power_curve.PowerCurve.from_wtg()`.
+    - Fixed errors when writing .wtg files for PowerCurves without document references, revision, or release dates using meth}`layowt.wtg.power_curve.PowerCurve.to_wtg()`.
 
 
 
