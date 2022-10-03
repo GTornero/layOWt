@@ -22,7 +22,8 @@ class FloatingLayout(Layout):
     of the points that make up the grid.
     
     This Layout subclass adds onto the Layout class by adding functions and methods to
-    generate valid mooring layout geometries.
+    generate valid mooring layout geometries. All attributes, methods, and properties of the Layout
+    class are available to the FloatingLayout class.
 
     Multiple numerical, spatial and graphical methods are available to
     manipulate the scenario o conform to constraint and set properties.
