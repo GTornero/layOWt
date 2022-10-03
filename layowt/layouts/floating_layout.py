@@ -5,14 +5,104 @@ This class can be used to design and represent floating turbines and their moori
 
 from typing import Callable
 
+import geopandas as gp
 import numpy as np
 from layowt.grids import Grid
 from layowt.layouts.layout import Layout
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from shapely.geometry import MultiLineString, MultiPolygon, Polygon
 from shapely.ops import unary_union
 
 
 class FloatingLayout(Layout):
+    """
+    This class is responsible for holding all of the data structures required
+    in order to define a floating project scenario and to generate the coordinate pairs
+    of the points that make up the grid.
+    
+    This Layout subclass adds onto the Layout class by adding functions and methods to
+    generate valid mooring layout geometries.
+
+    Multiple numerical, spatial and graphical methods are available to
+    manipulate the scenario o conform to constraint and set properties.
+    
+    Parameters
+    ----------
+    grid : Grid | None, optional
+        Grid object used to define the Layout, by default None.
+    epsg : int | None, optional
+        EPSG code for the layout coordinates.
+    areas : list[Polygon  |  MultiPolygon] | None, optional
+        List of Shapely Polygons or MultiPolygons used to define the lease
+        areas, by default None.
+    exclusions : list[Polygon  |  MultiPolygon] | None, optional
+        List of Shapely Polygons or MultiPolygons used to define exclusion
+        zones where turbines cannot be placed, by default None.
+    
+    See Also
+    --------
+    Polygon : Shapely Polygon object.
+    MultiPolygon : Shapely MultiPolygon object.
+    MultiLineString : Shapely MultiLineString object.
+    
+    Attributes
+    ----------
+    grid : Grid
+        Attribute: Underlying grid to the layout. None for layouts not created from a grid.
+    epsg : int
+        Attribute: EPSG code of the layout coordinate system.
+    area : list[Polygon | MultiPolygon]
+        Attrbute: List of buildable area geometries of the layout.
+    exclusion : list[Polygon | MultiPolygon]
+        Attribute: List of exclusion area geometries of the layout.
+    bathymetry_path : str
+        Attribute: filepath of the layout's bathymetry dataset.
+    bathymetry_limits: tuple(float, float)
+        Attribute: Tuple of minimum and maximum allowable bathymetry values for valid layout positions.
+    bathymetry_sign : str
+        Attribute: Sign ("+" or "-") in which bathymetry values are represented.
+    bathymetry_drop_na : bool
+        Attributes: If layout positions at locations of missing bathymetry have been removed.
+    bathymetry_epsg : int
+        Attribute: EPSG code of the bathymetry raster file.
+    bathymetry_band : int
+        Attribute: Band number of the bathymetry raster file being used.
+    samples : list[float]
+        Attribute: List of sampled bathymetry values at the layout positions.
+    geom : MultiPoint
+        Attribute: MultiPoint geometry representation of the layout positions.
+    mooring_geom : list[MultiLineString]
+        Attribute: A list of MultiLineString geometry representations for the mooring lines at each
+        turbine position.
+    n_moorings : int
+        Attribute: Number of mooring lines per turbine position.
+    mooring_radius_func : float | Callable
+        Attribute: Function used to calculate the mooring radius at each turbine position. Can be
+        a constant float or a Callable that takes local turbine bathymetry as its sole argument.
+    platform_bearing: float
+        Attribute: Cardinal bearing of the floating platforms in degrees from True North.
+    mooring_bearings: list[float]
+        Attribute: List of cardinal bearings of the platform mooring lines in the global frame
+        of reference.
+    mooring_offsets: list[tuple(float, float)]
+        Attribute: List of tuple coordinate pairs for the mooring fairlead locations with respect
+        to the turbine location in the local platform reference frame.
+    mooring_origins: list[list[tuple(float, float)]]
+        Attribute: List of lists of tuple coordinate pairs. Each list has tuple coordinate pairs
+        for the origins for the mooring fairleads for each turbine platform in the global frame of
+        reference.
+    mooring_anchors: list[list[tuple(float, float)]]
+        Attributes: List of lists of tuple coordinate pairs. Each list has tuple coordinate pairs
+        for the end points for the mooring anchors for each turbine platform in the global frame of
+        reference.
+    mooring_radii: np.array
+        Attributes: Numpy array of the mooring radius for each turbine platform.
+    mooring_area: Polygon | MultiPolygon
+        Attribute: The polygon(s) geometry which must contain the mooring lines.
+    mooring_exclusions: Polygon | MultiPolygon
+        Attribute: The polygon(s) geometries which the mooring lines cannot fall into.
+    """
     def __init__(self,
         grid: Grid | None = None,
         epsg: int | None = None,
@@ -30,14 +120,38 @@ class FloatingLayout(Layout):
         self.mooring_anchors = None
         self.mooring_radii = None
         self.mooring_area = None
+        self.mooring_exclusions = None
     
     def _set_platform_bearing(self, platform_bearing: float | None) -> None:
+        """
+        Private setter method that sets the platform_bearing instance attribute.
+
+        Parameters
+        ----------
+        platform_bearing : float | None
+            Cardinal bearing of the platform from True North in the global reference frame.
+        """
         if platform_bearing is None:
             self.platform_bearing = 0
         else:
-            self.platform_bearing = platform_bearing
+            self.platform_bearing = platform_bearing % 360
     
     def _set_mooring_offsets(self, mooring_offsets: list[tuple[float, float]] | None) -> None:
+        """
+        Private method to calculate the mooring offsets after the rotating the platform by the
+        platform_bearing.
+
+        Parameters
+        ----------
+        mooring_offsets : list[tuple[float, float]] | None
+            List of coordinate pairs of the moorings in the platform local reference frame before
+            applying the platform_bearing rotation.
+
+        Raises
+        ------
+        ValueError
+            The number of moorings does not match the number of coordinate pairs passed.
+        """
         if mooring_offsets is None:
             self.mooring_offsets = self._rotate_mooring_offests([(0, 0)] * self.n_moorings)
         elif len(mooring_offsets) == self.n_moorings:
@@ -49,6 +163,21 @@ class FloatingLayout(Layout):
             raise ValueError(msg)
     
     def _rotate_mooring_offests(self, mooring_offsets: list[tuple[float, float]]) -> list[tuple[float, float]]:
+        """
+        Private method to rotate the mooring fairlead coordinates.
+
+        Parameters
+        ----------
+        mooring_offsets : list[tuple[float, float]]
+            List of coordinate pairs of the moorings in the platform local reference frame before
+            applying the platform_bearing rotation.
+
+        Returns
+        -------
+        list[tuple[float, float]]
+             List of coordinate pairs of the moorings in the platform local reference frame after
+            applying the platform_bearing rotation.
+        """
         rotated_offsets = []
         for offset in mooring_offsets:
             x = offset[0]*np.cos(np.deg2rad(self.platform_bearing)) + offset[1]*np.sin(np.deg2rad(self.platform_bearing))
@@ -57,6 +186,20 @@ class FloatingLayout(Layout):
         return rotated_offsets
     
     def _set_mooring_bearings(self, mooring_bearings: tuple[float, ...] | None) -> None:
+        """
+        Private method to set the mooring Cardinal Bearings after the platform bearing rotation.
+
+        Parameters
+        ----------
+        mooring_bearings : tuple[float, ...] | None
+            Mooring cardinal bearings in the platform local frame of reference before applying the
+            platform_bearing rotation.
+
+        Raises
+        ------
+        IndexError
+            The number of moorings does not match the number of mooring bearings pairs passed.
+        """
         if mooring_bearings is None:
             if self.n_moorings % 2:
                 self.mooring_bearings = (np.arange(0, -360, -360/self.n_moorings) + self.platform_bearing) % 360
@@ -68,6 +211,10 @@ class FloatingLayout(Layout):
             self.mooring_bearings = (np.array(mooring_bearings) + self.platform_bearing) % 360
     
     def _calculate_mooring_origins(self) -> None:
+        """
+        Private method to calculate all mooring fairlead coordinates i nthe global frame of
+        reference for each turbine platform.
+        """
         mooring_origins = []
         for point in self.geom.geoms:
             local_origins = []
@@ -78,6 +225,17 @@ class FloatingLayout(Layout):
         self.mooring_origins = mooring_origins
     
     def _calculate_mooring_radii(self) -> None:
+        """
+        Private method to calculate the mooring radius at each turbine location.
+
+        Raises
+        ------
+        AttributeError
+            If the mooring radius function is a Callable and no bathymetry dataset is loaded for
+            the layout.
+        TypeError
+            If the mooring radius function is not a float or a Callable.
+        """
         if callable(self.mooring_radius_func):
             if self.samples is None:
                 raise AttributeError("No bathymetry loaded for the layout.")
@@ -106,7 +264,9 @@ class FloatingLayout(Layout):
         self.mooring_anchors = mooring_anchors
     
     def _generate_mooring_geometry(self) -> None:
-        
+        """
+        Private method to generate the mooring MultiLineString geometries.
+        """
         self._calculate_mooring_origins()
         self._calculate_mooring_radii()
         self._calc_mooring_anchors()
@@ -124,12 +284,55 @@ class FloatingLayout(Layout):
                           platform_bearing: float | None = None,
                           mooring_bearings: tuple[float, ...] | None = None,
                           mooring_offsets: list[tuple[float, float]] | None = None,
-                          allow_crossings: bool = True,
                           contain: bool = False,
+                          mooring_areas: list[Polygon | MultiPolygon] | None = None,
                           avoid_exclusions: bool = False,
-                          exclusions: list[Polygon | MultiPolygon] | None = None
+                          mooring_exclusions: list[Polygon | MultiPolygon] | None = None
                           ) -> None:
-        
+        """
+        This method is used to generate mooring MultiLineString geometries for the FloatingLayout
+        instance.
+
+        Parameters
+        ----------
+        n_moorings : int
+            Number of mooring lines at each floating platfrom.
+        radius : float | Callable[[float], float]
+            Mooring radius function. This parameter defines how the mooring radius length is
+            calculated for each turbine floating platform. If a float is passed, it is used as a
+            constant mooring length for all turbine positions. If a callable is passed, it must
+            take in a single argument of bathymetry for each turbine postion.
+        platform_bearing : float | None, optional
+            Cardinal bearing of the floating platform with respect to True North, by default None.
+        mooring_bearings : tuple[float, ...] | None, optional
+            Cardinal bearings of the mooring lines in the local reference frame of the floating
+            platform. If None is passed, the moorings will be spread evenly around the 360°
+            anti-clockwise, by default None.
+        mooring_offsets : list[tuple[float, float]] | None, optional
+            The coordinate pairs for the mooring fairleads with respect to the turbine position in
+            the floating platform local reference frame. If None is passed, all mooring fairleads
+            will be at the turbine location, by default None.
+        contain : bool, optional
+            If True, the mooring lines and associated turbine locations outwith the mooring_areas
+            are removed from the layout. If set to True but no mooring_areas are passed, the
+            normal turbine area constraint geometry will be used, by default False.
+        mooring_areas : list[Polygon  |  MultiPolygon] | None, optional
+            Polygon geometries to constrain the mooring lines to, used in conjunction with the
+            contain argument, by default None. Has no effect if contain is set to False. 
+        avoid_exclusions : bool, optional
+            If True, removes the mooring lines and associated turbine locations that overlap with
+            the mooring_exclusions. If set to True but no mooring_exclusions are passed, the normal
+            turbine exclusion geometry will be used, by default False.
+        mooring_exclusions : list[Polygon  |  MultiPolygon] | None, optional
+            Polygon geometries to use as mooring exclusion zones, used in conjunction with the
+            avoid_exclusions argument, by default None. Has no effect if avoid_exclusions is set to False.
+
+        Raises
+        ------
+        AttributeError
+            If the FloatingLayout instance has no turbine geometries from which to generate
+            moorings from.
+        """
         if not self.has_geom():
             raise AttributeError("Layout has no point geometry to generate moorings from.")
 
@@ -138,14 +341,24 @@ class FloatingLayout(Layout):
         self._set_platform_bearing(platform_bearing)
         self._set_mooring_offsets(mooring_offsets)
         self._set_mooring_bearings(mooring_bearings)
-            # for each wtg position:
+            
         self._generate_mooring_geometry()
-                # 4: calculate mooring origin location
-                # 5: calculate mooring radius
-                # 6: calculate anchor location
-                # 7: generate mooring geometry (list of lines)
+        
+        if contain:
+            self.clip_moorings_to_area(areas=mooring_areas, mode='w')
+        if avoid_exclusions:
+            self.avoid_mooring_exclusions(exclusions=mooring_exclusions, mode='w')
     
     def reset_moorings(self) -> "FloatingLayout":
+        """
+        This method resets all moorings and any mooring related attributes back to None.
+        Also recovers the turbine positions lost due to any mooring contraints.
+
+        Returns
+        -------
+        FloatingLayout
+            FloatingLayout with reset moorings and associated attributes.
+        """
         self.mooring_geom = None
         self.n_moorings = None
         self.mooring_radius_func = None
@@ -156,16 +369,64 @@ class FloatingLayout(Layout):
         self.mooring_anchors = None
         self.mooring_radii = None
         self.mooring_area = None
+        self.mooring_exclusions = None
+        
+        if self.has_geom():
+            self.geom = self._raw_geom
+            if self.has_area():
+                self.clip_to_area(self.area)
+            if self.has_exclusion():
+                self.avoid_exclusions(self.exclusion)
+            if self.has_bathymetry():
+                self.load_bathymetry(
+                                    filepath=self.bathymetry_path,
+                                    limits=self.bathymetry_limits,
+                                    sign=self.bathymetry_sign,
+                                    drop_na=self.bathymetry_drop_na)
         return self
     
     def has_moorings(self) -> bool:
+        """
+        Returns True if the FloatingLayout has mooring geometries.
+
+        Returns
+        -------
+        bool
+            True if the FloatingLayout has mooring geometries, False otherwise.
+        """
         return self.mooring_geom is not None
     
     def has_mooring_area(self) -> bool:
+        """
+        Returns True if the FloatingLayout has mooring areas.
+
+        Returns
+        -------
+        bool
+            True if the FloatingLayout has mooring areas, False otherwise.
+        """
         return self.mooring_area is not None
     
+    def has_mooring_exclusions(self) -> bool:
+        """
+        Returns True if the FloatingLayout has mooring exclusions.
+
+        Returns
+        -------
+        bool
+            True if the FloatingLayout has mooring exclusions, False otherwise.
+        """
+        return self.mooring_exclusions is not None
+    
     def reset_mooring_area(self) -> "FloatingLayout":
-        
+        """
+        Resets the mooring_area constraints and recovers any turbine positions lost because of it.
+
+        Returns
+        -------
+        FloatingLayout
+            FloatingLayout without any mooring_area constraints.
+        """
         if self.has_mooring_area():
             self.mooring_area = None
             if self.has_geom():
@@ -180,11 +441,84 @@ class FloatingLayout(Layout):
                                         limits=self.bathymetry_limits,
                                         sign=self.bathymetry_sign,
                                         drop_na=self.bathymetry_drop_na)
-            # TODO: clip moorings if required
+                
+                self.generate_moorings(n_moorings=self.n_moorings,
+                                       radius=self.mooring_radius_func,
+                                       platform_bearing=self.platform_bearing,
+                                       mooring_bearings=self.mooring_bearings,
+                                       mooring_offsets=self.mooring_offsets
+                                       )
+                if self.mooring_exclusions is not None:
+                    self.avoid_mooring_exclusions(exclusions=[self.mooring_exclusions], mode='w')
         return self
     
+    def reset_mooring_exclusions(self) -> "FloatingLayout":
+        """
+        Resets the mooring_exclusions constraints and recovers any turbine positions lost because of it.
+
+        Returns
+        -------
+        FloatingLayout
+            FloatingLayout without any mooring_exclusions constraints.
+        """
+        if self.has_mooring_exclusions():
+            self.mooring_exclusions = None
+            if self.has_geom():
+                self.geom = self._raw_geom
+                if self.has_area():
+                    self.clip_to_area(self.area)
+                if self.has_exclusion():
+                    self.avoid_exclusions(self.exclusion)
+                if self.has_bathymetry():
+                    self.load_bathymetry(
+                                        filepath=self.bathymetry_path,
+                                        limits=self.bathymetry_limits,
+                                        sign=self.bathymetry_sign,
+                                        drop_na=self.bathymetry_drop_na)
+                
+                self.generate_moorings(n_moorings=self.n_moorings,
+                                       radius=self.mooring_radius_func,
+                                       platform_bearing=self.platform_bearing,
+                                       mooring_bearings=self.mooring_bearings,
+                                       mooring_offsets=self.mooring_offsets
+                                       )
+                if self.mooring_area is not None:
+                    self.clip_moorings_to_area(areas=[self.mooring_area], mode='w')
+        return self
+            
+    
     def clip_moorings_to_area(self, areas: list[Polygon | MultiPolygon] | None = None, mode: str = "a") -> "FloatingLayout":
-        
+        """
+        Applies a mooring_area constraint to the floating Layout. Moorings and associated turbine
+        positions that fall outside the area are removed.
+
+        Parameters
+        ----------
+        areas : list[Polygon  |  MultiPolygon] | None, optional
+            Polygoin geometries to use as mooring_area constraints. If None is passed, and the
+            FloatingLayout has an area constraint, the normal area constraint will be used, by default None.
+        mode : str, optional
+            Speficies the mode in which the passed areas are added to the layout as
+            constraints. Options are 'w' for write mode and 'a' for append mode (case insensitive).
+            When calling this method in append mode, the passed geometries will be added to any
+            existing mooring_areas as additional constraints. When calling this method in write
+            mode, any existing area constraints will be overwritten by the passed geometries. By
+            default "a".
+
+        Returns
+        -------
+        FloatingLayout
+            FloatingLayout with mooring lines, and associated turbines, limited to within the mooring_areas constraint.
+
+        Raises
+        ------
+        AttributeError
+            If the FloatingLayout has no mooring geometries to clip.
+        ValueError
+            If mode is not 'a' or 'w'.
+        AttributeError
+            If no areas are passed and the FloatingLayout does not have an area constraint.
+        """
         if not self.has_moorings():
             raise AttributeError(f"{self.__class__} has no moorings to clip.")
         
@@ -200,7 +534,7 @@ class FloatingLayout(Layout):
             area = unary_union(areas)
             if self.has_mooring_area() and mode.lower() == 'a':
                 self.mooring_area = unary_union([self.mooring_area, area])
-            elif self.has_mooring_area() and mode.lower == 'w':
+            elif self.has_mooring_area() and mode.lower() == 'w':
                 self.reset_mooring_area()
                 self.mooring_area = area
             else:
@@ -229,10 +563,152 @@ class FloatingLayout(Layout):
         self.mooring_anchors = valid_mooring_anchors
         self.mooring_radii = np.array(valid_mooring_radii)
         self.mooring_geom = valid_moorings
-        self.samples = valid_samples
+        if self.has_bathymetry():
+            self.samples = valid_samples
         
         return self
-    # 8: (optional) eliminate positions with moorings outside lease area
-    # 9: (optional) eliminate positions crossing exclusions (can be another exclusion layer)
-    # 10: (optional) eliminate positions with crossing moorings (which of the two positions involved in the crossing?)
-            
+
+    def avoid_mooring_exclusions(self, exclusions: list[Polygon | MultiPolygon] | None = None, mode: str = "a") -> "FloatingLayout":
+        """
+        Applies a mooring_exclusions constraint to the floating Layout. Moorings and associated
+        turbine positions that overlap with these exclusions are removed fro mthe layout.
+
+        Parameters
+        ----------
+        exclusions : list[Polygon  |  MultiPolygon] | None, optional
+            Polygoin geometries to use as mooring_exclusion constraints. If None is passed, and the
+            FloatingLayout has an exclusion constraint, the normal exclusion constraint will be
+            used, by default None.
+        mode : str, optional
+            Speficies the mode in which the passed exclusions are added to the layout as
+            constraints. Options are 'w' for write mode and 'a' for append mode (case insensitive).
+            When calling this method in append mode, the passed geometries will be added to any
+            existing moring_exclusions as additional constraints. When calling this method in write
+            mode, any existing mooring_exclusion constraints will be overwritten by the passed geometries. By
+            default "a".
+
+        Returns
+        -------
+        FloatingLayout
+            FloatingLayout with no mooring lines and associated turbines overlapping any
+            mooring_exclusions.
+
+        Raises
+        ------
+        AttributeError
+            If the FloatingLayout has no mooring geometries.
+        ValueError
+            If mode is not 'a' or 'w'.
+        AttributeError
+            If no exclusions are passed and the FloatingLayout does not have an exclusion constraint.
+        """
+        if not self.has_moorings():
+            raise AttributeError(f"{self.__class__} has no moorings.")
+        
+        if mode.lower() not in ["a", "w"]:
+            raise ValueError(f"mode must be 'a' or 'w'. Value of {mode=} passed.")
+        
+        if exclusions is None:
+            if not self.has_exclusion():
+                raise AttributeError(f"No exclusions geometries passed and {self.__class__} has no exclusions defined.")
+            else:
+                self.mooring_exclusions = self.exclusion
+        else:
+            exclusion = unary_union(exclusions)
+            if self.has_mooring_exclusions() and mode.lower() == 'a':
+                self.mooring_exclusions = unary_union([self.mooring_exclusions, exclusion])
+            elif self.has_mooring_exclusions() and mode.lower() == 'w':
+                self.reset_mooring_exclusions()
+                self.mooring_exclusions = exclusion
+            else:
+                self.mooring_exclusions = exclusion
+        
+        valid_points = []
+        valid_moorings = []
+        valid_mooring_origins = []
+        valid_mooring_anchors = []
+        valid_mooring_radii = []
+        if self.has_bathymetry():
+            valid_samples = []
+        
+        for i, mooring in enumerate(self.mooring_geom):
+            if mooring.disjoint(self.mooring_exclusions):
+                valid_points.append(self.geom.geoms[i])
+                valid_mooring_origins.append(self.mooring_origins[i])
+                valid_mooring_anchors.append(self.mooring_anchors[i])
+                valid_mooring_radii.append(self.mooring_radii[i])
+                valid_moorings.append(mooring)
+                if self.has_bathymetry():
+                    valid_samples.append(self.samples[i])
+        
+        self.geom = unary_union(valid_points)
+        self.mooring_origins = valid_mooring_origins
+        self.mooring_anchors = valid_mooring_anchors
+        self.mooring_radii = np.array(valid_mooring_radii)
+        self.mooring_geom = valid_moorings
+        if self.has_bathymetry():
+            self.samples = valid_samples
+        
+        return self
+    
+    @property
+    def mooring_crossings(self) -> bool:
+        """
+        Returns True if there are any mooring crossings in the x-y plane.
+
+        Returns
+        -------
+        bool
+            True if any mooring line geometries cross in the x-y plane. False otherwise.
+        """
+        for i, mooring in enumerate(self.mooring_geom):
+            if i == 0:
+                other_moorings = unary_union(self.mooring_geom[1:])
+            elif i == len(self.mooring_geom):
+                other_moorings = unary_union(self.mooring_geom[:-1])
+            else:
+                other_moorings = unary_union(self.mooring_geom[0:i] + self.mooring_geom[i+1:])
+    
+            if not mooring.disjoint(other_moorings):
+                return True
+        
+        return False
+    
+    def plot(self, ax: Axes | None = None, figsize: tuple = (8, 6), show_bathy: bool = False) -> tuple[Figure, Axes]:
+        """
+        Plots the FloatingLayout turbine and mooring geometries, as well as areas and exclusions.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes | None, optional
+            Axes on which the Layout is drawn. If None, a new Figure and Axes are created, by default None.
+        figsize : tuple, optional
+            Figure size in inches in (width, height) format, by default (8, 6)
+        show_bathy : bool, optional
+            If True, render the bathymetry onto the plot. Layout must have a loaded bathymetry filepath.
+
+        Returns
+        -------
+        tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+            Tuple of Figure and Axes objects.
+
+        Raises
+        ------
+        TypeError
+            The passed ax argument was not of type Axes.
+        
+        Caution
+        ----
+        Performance can be seriously reduced if show_bathy is set to true and high resolution bathymetry data is to be rendered.
+        """
+        fig, ax = super().plot(ax=ax, figsize=figsize, show_bathy=show_bathy)
+        if self.mooring_geom is not None:
+            gp.GeoSeries(self.mooring_geom).plot(ax=ax, color='black')
+        
+        if self.has_mooring_area():
+            gp.GeoSeries(self.mooring_area).plot(ax=ax, facecolor='green', alpha=0.2)
+        
+        if self.has_mooring_exclusions():
+             gp.GeoSeries(self.mooring_exclusions).plot(ax=ax, facecolor='red', alpha=0.2)
+        
+        return fig, ax
