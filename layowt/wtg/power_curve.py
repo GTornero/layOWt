@@ -297,9 +297,19 @@ class PowerCurve:
         performance_table.set('AirDensity', str(self.attributes["air_density"]))
         performance_table.set('MaximumNoiseLevel','0')
         performance_table.set('BladePitchAngle','-99999')
-        performance_table.set('ReleaseDate', str(self.attributes["curve_date"]))
-        performance_table.set('DataStatus', str(self.attributes["revision"]))
-        performance_table.set('DataSource', self.attributes["ref_document_id"])
+        if self.attributes["curve_date"] is not None:
+            performance_table.set('ReleaseDate', str(self.attributes["curve_date"])) 
+        else:
+            performance_table.set('ReleaseDate', str(date.today()))
+        if self.attributes["revision"] is not None:
+            performance_table.set('DataStatus', str(self.attributes["revision"]))
+        else:
+            performance_table.set('DataStatus', "Unknown")
+        if self.attributes["ref_document_id"] is not None:
+            performance_table.set('DataSource', self.attributes["ref_document_id"])
+        else:
+            performance_table.set('DataSource', "Unknown")
+        
         performance_table.set('ReferenceURI','None')
         performance_table.set('StationaryThrustCoEfficient','%.3g' % data["ct"].iloc[-1]) # Ct of the last wind speed bin
         
