@@ -33,7 +33,7 @@ class FloatingLayout(Layout):
     grid : Grid | None, optional
         Grid object used to define the Layout, by default None.
     epsg : int | None, optional
-        EPSG code for the layout coordinates.
+        EPSG code for the layout coordinates, by default None.
     areas : list[Polygon  |  MultiPolygon] | None, optional
         List of Shapely Polygons or MultiPolygons used to define the lease
         areas, by default None.
@@ -52,7 +52,7 @@ class FloatingLayout(Layout):
     grid : Grid
         Attribute: Underlying grid to the layout. None for layouts not created from a grid.
     epsg : int
-        Attribute: EPSG code of the layout coordinate system.
+        Attribute: `EPSG <https://epsg.io/>`_ code of the layout coordinate system.
     area : list[Polygon | MultiPolygon]
         Attrbute: List of buildable area geometries of the layout.
     exclusion : list[Polygon | MultiPolygon]
@@ -94,11 +94,11 @@ class FloatingLayout(Layout):
         for the origins for the mooring fairleads for each turbine platform in the global frame of
         reference.
     mooring_anchors: list[list[tuple(float, float)]]
-        Attributes: List of lists of tuple coordinate pairs. Each list has tuple coordinate pairs
+        Attribute: List of lists of tuple coordinate pairs. Each list has tuple coordinate pairs
         for the end points for the mooring anchors for each turbine platform in the global frame of
         reference.
     mooring_radii: np.array
-        Attributes: Numpy array of the mooring radius for each turbine platform.
+        Attribute: Numpy array of the mooring radius for each turbine platform.
     mooring_area: Polygon | MultiPolygon
         Attribute: The polygon(s) geometry which must contain the mooring lines.
     mooring_exclusions: Polygon | MultiPolygon

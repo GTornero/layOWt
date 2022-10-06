@@ -36,7 +36,7 @@ class Layout:
     grid : Grid | None, optional
         Grid object used to define the Layout, by default None.
     epsg : int | None, optional
-        EPSG code for the layout coordinates.
+        EPSG code for the layout coordinates, by default None.
     areas : list[Polygon  |  MultiPolygon] | None, optional
         List of Shapely Polygons or MultiPolygons used to define the lease
         areas, by default None.

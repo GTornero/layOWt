@@ -11,7 +11,8 @@ This page assumes that you are already familiar with the LayOWt installation pro
 Tutorial 1: Generating a Grid <notebooks/grid_tutorial>
 Tutorial 2: The Layout Object <notebooks/layout_tutorial>
 Tutorial 3: Procedural Generation of Gridded Layouts <notebooks/GriddedLayoutGenerator_tutorial>
-Tutorial 4: The PowerCurve Object <notebooks/PowerCurve_tutorial>
+Tutorial 4: The FloatingLayout Object <notebooks/floating_layout_tutorial>
+Tutorial 5: The PowerCurve Object <notebooks/PowerCurve_tutorial>
 ```
 
 ## [Tutorial 1: Generating a Grid](notebooks/grid_tutorial)
@@ -28,7 +29,12 @@ This section will cover the many ways to create a `Layout` and how to carry out 
 This tutorial introduces you to LayOWt's layout generators, and how to use them to quickly produce many `Layout` configurations in only a few lines of code.
 This will cover the specific `GriddedLayoutGenerator` objects that uses `Grid` objects to define layouts.
 
-## [Tutorial 4: The PowerCurve Object](notebooks/PowerCurve_tutorial)
+## [Tutorial 4: The FloatingLayout Object](notebooks/floating_layout_tutorial)
+
+This tutorial introduces you to the `FloatingLayout`. A `FloatingLayout` object is a subclass of the `Layout` object. This means that it has access to all of
+the normal functionality of a `Layout` but also builds upon it with extra funcionalities in order to design and constrain mooring system geometries.
+
+## [Tutorial 5: The PowerCurve Object](notebooks/PowerCurve_tutorial)
 
 This tutorial introduces LayOWt's `PowerCurve` object. This object brings some handy functionality to easily interact with OW's internal power curve database
 for both commercial and internally extrapolated turbines and their power curves. The `PowerCurve` object can be created from text data, from the database,

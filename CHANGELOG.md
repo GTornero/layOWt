@@ -19,6 +19,8 @@ Added the FloatingLayout class and Moorings!
 - {class}`layowt.layouts.floating_layout.FloatingLayout` class: New Layout subclass with mooring design functionality!
 - {class}`layowt.layouts.layout.Layout` class:
     - Now stores the attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band`.
+- Tutorials:
+    - Added {class}`layowt.layouts.floating_layout.FloatingLayout` class tutorial.
  
 ### Changed
  
