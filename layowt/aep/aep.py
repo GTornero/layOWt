@@ -1,10 +1,17 @@
 """ aep module. This module contains functions to calculate aep using different methods and inputs.
 """
+from collections.abc import Iterable
+
 import numpy as np
+import rasterio
 from layowt.wtg.power_curve import PowerCurve
+from rasterio.errors import CRSError, DatasetIOShapeError
 from scipy.integrate import simpson
 from scipy.special import gamma
 
+
+def _weibull_dist(wind_speed: float | Iterable[float], weibull_a: float, weibull_k: float) -> float | Iterable[float]:
+    return weibull_k / weibull_a * (wind_speed / weibull_a)**(weibull_k-1) * np.exp(-(wind_speed / weibull_a)**weibull_k)
 
 def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str = "GWh", leap_year: bool=True) -> float:
     """
@@ -25,7 +32,7 @@ def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str =
 
     Parameters
     ----------
-    wt : PowerCurve
+    pc : PowerCurve
         LayOWt PowerCurve object. This object contains all of the turbine specifications such as power and Ct vs wind speed curves, rotor size, etc.
     weibull_a : float
         The 2-parameter Weibull scale parameter in m/s.
@@ -77,7 +84,7 @@ def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str =
 
     wind_speed_bins = pc.data.index
     power = pc.data["power"]
-    weibull_dist = weibull_k / weibull_a * (wind_speed_bins / weibull_a)**(weibull_k-1) * np.exp(-(wind_speed_bins/weibull_a)**weibull_k)
+    weibull_dist = _weibull_dist(wind_speed_bins, weibull_a, weibull_k)
     aep = hours_in_year*simpson(weibull_dist*power, wind_speed_bins)
 
     return aep / power_scale_factor
@@ -105,7 +112,7 @@ def weibull_wpd(weibull_a: float, weibull_k: float, air_density: float = 1.225) 
     air_density : float, optional
         Density of air in kg/m\\ :sup:`3`\\, by default 1.225.
 
-    Returns
+    Return
     -------
     float
         Mean wind power density of the Weibull distribution in W/m\\ :sup:`2`\\.
@@ -124,3 +131,65 @@ def weibull_wpd(weibull_a: float, weibull_k: float, air_density: float = 1.225) 
     
     wpd = 0.5 * air_density * (weibull_a**3) * gamma(1 + 3/weibull_k)
     return wpd
+
+def weibull_aep_map(pc: PowerCurve, weibull_a: str, weibull_k: str, output_path: str = "aep.tif", units: str = "GWh", leap_year: bool=True) -> None:
+    """
+    This function takes in a PowerCurve and Weibull A (scale) and k (shape) parameter raster
+    datasets, and creates a gross annual energy production raster dataset.
+
+    Parameters
+    ----------
+    pc : PowerCurve
+        LayOWt PowerCurve object. This object contains all of the turbine specifications such as power and Ct vs wind speed curves, rotor size, etc.
+    weibull_a : str
+        The filepath string for the 2-parameter Weibull scale parameter raster dataset in m/s.
+    weibull_k : str
+        The filepath string for the 2-parameter Weibull shape parameter raster dataset.
+    output_path : str, optional
+        Filepath of the output GAEP raster dataset, by default "aep.tif"
+    units : str, optional
+        Units in which to report the calculated AEP. Must be one of "Wh", "kWh", "MWh", or "GWh" (case insensitive), by default "GWh".
+    leap_year : bool, optional
+        If True, the number of hours in a year used in the calculation is 8766, otherwise 8760, by default True.
+
+    Raises
+    ------
+    CRSError
+        _description_
+    DatasetIOShapeError
+        _description_
+    ValueError
+        _description_
+    """
+    weibull_aep_vector = np.vectorize(weibull_aep)
+    
+    with rasterio.open(weibull_a) as src_a:
+        with rasterio.open(weibull_k) as src_k:
+            if src_a.crs != src_k.crs:
+                raise CRSError(f"A and k datasets must use the same CRS. A: {src_a.crs}, k: {src_k.crs}.")
+            elif src_a.shape != src_k.shape:
+                raise DatasetIOShapeError(f"A and k datasets must be of the same size. A: {src_a.shape}, k: {src_k.shape}.")
+            elif src_a.transform[0:5:4] != src_k.transform[0:5:4]:
+                raise ValueError(f"A and k datasets must have the same cell size. A: {src_a.transform[0:5:4]}, k: {src_k.transform[0:5:4]}.")
+            
+            # clean A and k values below zero
+            a_array = src_a.read(1)
+            k_array = src_k.read(1)
+            
+            a_array[a_array <= 0] = np.nan
+            k_array[k_array <= 0] = np.nan
+            
+            result = weibull_aep_vector(pc, a_array, k_array, units=units, leap_year=leap_year)
+
+            with rasterio.open(
+                output_path,
+                'w',
+                driver='GTiff',
+                height=src_a.shape[0],
+                width=src_a.shape[1],
+                count=1,
+                dtype=result.dtype,
+                crs=src_a.crs,
+                transform=src_a.transform
+                ) as output:
+                    output.write(result, 1)

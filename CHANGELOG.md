@@ -16,6 +16,7 @@ Added the FloatingLayout class and Moorings!
  
 ### Added
 - {func}`layowt.aep.aep.weibull_wpd` function.
+- {func}`layowt.aep.aep.weibull_aeo_map` function. This function allows for the creation of GAEP raster datasets.
 - {class}`layowt.layouts.floating_layout.FloatingLayout` class: New Layout subclass with mooring design functionality!
 - {class}`layowt.layouts.layout.Layout` class:
     - Now stores the attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band`.
