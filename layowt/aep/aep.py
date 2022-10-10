@@ -135,7 +135,11 @@ def weibull_wpd(weibull_a: float, weibull_k: float, air_density: float = 1.225) 
 def weibull_aep_map(pc: PowerCurve, weibull_a: str, weibull_k: str, output_path: str = "aep.tif", units: str = "GWh", leap_year: bool=True) -> None:
     """
     This function takes in a PowerCurve and Weibull A (scale) and k (shape) parameter raster
-    datasets, and creates a gross annual energy production raster dataset.
+    datasets, and creates a gross annual energy production raster dataset. The :func:`weibull_aep`
+    function is used to calculate gross annual energy production.
+    
+    The CRS, shape, and cell size of the Weibull A and k datasets must be the same. I.e. the rasters
+    must have the same extent and cells must be aligned prior to being used with this function.
 
     Parameters
     ----------
@@ -155,11 +159,15 @@ def weibull_aep_map(pc: PowerCurve, weibull_a: str, weibull_k: str, output_path:
     Raises
     ------
     CRSError
-        _description_
+        CRS of the Weibull A and k datasets is not the same.
     DatasetIOShapeError
-        _description_
+        Size of the Weibull A and k datasets is not the same.
     ValueError
-        _description_
+        Cell size of the Weibull A and k datasets is not the same.
+    
+    See Also
+    --------
+    weibull_aep : Calculate Gross Annual Energy Production from a 2-Parameter Weibull Distribution.
     """
     weibull_aep_vector = np.vectorize(weibull_aep)
     
