@@ -163,7 +163,7 @@ def weibull_aep_map(pc: PowerCurve, weibull_a: str, weibull_k: str, output_path:
     DatasetIOShapeError
         Size of the Weibull A and k datasets is not the same.
     ValueError
-        Cell size of the Weibull A and k datasets is not the same.
+        Extant or cell size of the Weibull A and k datasets is not the same.
     
     See Also
     --------
@@ -177,6 +177,8 @@ def weibull_aep_map(pc: PowerCurve, weibull_a: str, weibull_k: str, output_path:
                 raise CRSError(f"A and k datasets must use the same CRS. A: {src_a.crs}, k: {src_k.crs}.")
             elif src_a.shape != src_k.shape:
                 raise DatasetIOShapeError(f"A and k datasets must be of the same size. A: {src_a.shape}, k: {src_k.shape}.")
+            elif src_a.bounds != src_k.bounds:
+                raise ValueError("A and k datasets must have the same extent.")
             elif src_a.transform[0:5:4] != src_k.transform[0:5:4]:
                 raise ValueError(f"A and k datasets must have the same cell size. A: {src_a.transform[0:5:4]}, k: {src_k.transform[0:5:4]}.")
             
