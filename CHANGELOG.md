@@ -15,11 +15,12 @@ LayOWt Version 0.2.0
 Added the FloatingLayout class and Moorings!
  
 ### Added
-- {func}`layowt.aep.aep.weibull_wpd` function.
+- {func}`layowt.aep.aep.weibull_wpd` function. This function calculates the wind power density of a weibull distribution.
 - {func}`layowt.aep.aep.weibull_aep_map` function. This function allows for the creation of GAEP raster datasets.
 - {class}`layowt.layouts.floating_layout.FloatingLayout` class: New Layout subclass with mooring design functionality!
 - {class}`layowt.layouts.layout.Layout` class:
     - Now stores the attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band`.
+- {func}`layowt.layouts.utils.raster_slope` function. This function calculates a slope raster dataset from an elevation dataset.
 - Tutorials:
     - Added {class}`layowt.layouts.floating_layout.FloatingLayout` class tutorial.
  

@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pyproj
 import rasterio
+from osgeo import gdal
 from rasterio.crs import CRS
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from shapely.geometry import shape
@@ -199,3 +200,25 @@ def reproject_raster(filepath: str, output_path: str, target_epsg: int, resample
                     dst_crs=dst_crs,
                     resampling=Resampling(resample_method)
                 )
+
+def raster_slope(filepath: str, output_path: str = "slope.tif", slope_format: str = "degree", scale: float = 1) -> None:
+    """
+    This function takes a raster elevation dataset and calculates the slope in degrees or percent.
+    
+    Parameters
+    ----------
+    filepath : str
+        filepath of the raster to be processed. Must be a file format supported by GDAL.
+    output_path : str, optional
+        filepath of the slope raster dataset, by default "slope.tif".
+    slope_format : str, optional
+        Format of the output slope calculation. Either in degrees or percent, by default "degree".
+    scale : float, optional
+        Ratio of vertical units to horizontal, be default 1.
+    """
+    if slope_format.lower() not in ["degree", "percent"]:
+        ValueError("slope_format but be either 'degree' or 'percent'.")
+        
+    input_dem = gdal.Open(filepath)
+    gdal.DEMProcessing(output_path, input_dem, "slope", slopeFormat=slope_format, scale=scale)
+    input_dem = None
