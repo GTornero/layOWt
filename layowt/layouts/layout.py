@@ -879,7 +879,7 @@ class Layout:
         return fig, ax
 
 
-    def to_shapefile(self, filepath: str, epsg: int) -> None:
+    def to_shapefile(self, filepath: str, epsg: int = None) -> None:
         """to_shapefile Saves the Layout Point geometries as a Shapefile.
 
         Parameters
@@ -887,8 +887,22 @@ class Layout:
         filepath : str
             Filepath to save the Shapefile as.
         epsg : int
-            Valid `EPSG <https://epsg.io/>`_ code for the projection of the Shapefile.
+            Valid `EPSG <https://epsg.io/>`_ code for the projection of the Shapefile. If passed,
+            this code takes precedence over the layout epsg code (if defined). By default, None.
+        
+        Raises
+        ------
+        ValueError
+            No EPSG code available for the shapefile CRS.
         """
+        
+        if epsg is None and self.epsg is not None:
+            crs = pyproj.CRS.from_epsg(self.epsg).to_dict()
+        elif epsg is None and self.epsg is None:
+            raise ValueError("No EPSG code provided.")
+        elif _is_epsg(epsg):
+            crs = pyproj.CRS.from_epsg(epsg).to_dict()
+            
         # TODO: Create a more detailed attribute schema (wakes, water depth, etc.).
         schema = {"geometry": "Point", "properties": {"id": "int"}}
 
