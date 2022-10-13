@@ -7,14 +7,14 @@ import numpy as np
 import pandas as pd
 import pyproj
 import rasterio
+from layowt.grids.grid import Grid
+from layowt.layouts.layout import Layout
 from osgeo import gdal
 from rasterio.crs import CRS
 from rasterio.warp import Resampling, calculate_default_transform, reproject
-from shapely.geometry import shape
+from shapely.geometry import MultiPoint, shape
 from shapely.ops import transform
 from sqlalchemy import create_engine
-
-from .layout import Layout
 
 
 def geoms_from_shapefile(filepath: str, target_epsg: int | None = None) -> list:
@@ -129,9 +129,10 @@ def layouts_to_legacy_csv(layouts: list[Layout], filepath: str = "layouts.csv") 
     for i, layout in enumerate(layouts):
         layout_data += list(zip(np.ones(layout.n_wtg)*i, layout.x, layout.y))
         layout_info.append([i, layout.grid.angle, layout.grid.row_step, layout.grid.col_step,
+                            layout.grid.n_rows, layout.grid.n_cols,
                             layout.grid.row_offset, layout.grid.col_offset, layout.grid.x_shear,
                             layout.grid.y_shear, layout.grid.origin[0], layout.grid.origin[1],
-                            layout.grid.scale, layout.n_wtg])
+                            layout.grid.scale, layout.n_wtg, layout.epsg])
         
     layout_df = pd.DataFrame(layout_data)
     layout_df[3] = 1
@@ -139,9 +140,56 @@ def layouts_to_legacy_csv(layouts: list[Layout], filepath: str = "layouts.csv") 
     layout_df.to_csv(filepath, index=False)
     
     layout_info_df = pd.DataFrame(layout_info)
-    layout_info_df.columns = ["id", "angle", "row", "col", "row_offset", "col_offset", "x_shear",
-                              "y_shear", "origin_x", "origin_y", "scale", "n_wtg"]
+    layout_info_df.columns = ["id", "angle", "row", "col", "n_rows", "n_cols", "row_offset", "col_offset", "x_shear",
+                              "y_shear", "origin_x", "origin_y", "scale", "n_wtg", "epsg"]
     layout_info_df.to_csv("INFO_" + filepath, index=False)
+    
+def legacy_csv_to_layouts(filepath: str) -> list[Layout]:
+    """
+    This function reads the legacy layouts .csv and the complementary INFO_ file, and rebuilds
+    Layout objects from the data. 
+
+    Parameters
+    ----------
+    filepath : str
+        Filepath of the legacy layouts .csv file. Will find the complementary INFO_ file by adding
+        "INFO_" as a preffix to this filepath.
+
+    Returns
+    -------
+    list[Layout]
+        List of Layouts rebuilt from the .csv files.
+    """
+    layouts = []
+    
+    layout_df = pd.read_csv(filepath)
+    layout_info = pd.read_csv("INFO_" + filepath)
+    
+    full_info = True
+    
+    for row in layout_info.itertuples():
+        if full_info:
+            try:
+                grid = Grid(n_rows=row.n_rows, n_cols=row.n_cols, row_step=row.row, col_step=row.col,
+                            row_offset=row.row_offset, col_offset=row.col_offset,
+                            angle=row.angle, x_shear=row.x_shear, y_shear=row.y_shear, origin=(row.origin_x, row.origin_y),
+                            scale=row.scale)
+            except AttributeError:
+                full_info = False
+                grid = None
+        
+        wtg_coords = layout_df[layout_df["id"] == row.id]
+        geom = MultiPoint(list(zip(wtg_coords["X"], wtg_coords["Y"])))
+        layout = Layout(grid=grid)
+        layout._raw_geom = geom
+        layout.geom = geom
+        
+        if full_info:
+            layout.epsg = row.epsg
+            
+        layouts.append(layout)
+    
+    return layouts
 
 def reproject_raster(filepath: str, output_path: str, target_epsg: int, resample_method: int = 0) -> None:
     """reproject_raster Utility function to reproject raster datasets into the CRS defined by the user input EPSG code. Can select from a variety of reampling methods.

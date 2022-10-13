@@ -25,11 +25,12 @@ Added the FloatingLayout class and Moorings!
     - Now has an implemented \_\_len\_\_ method. Returns the number of layout combinations that will be created when running the {meth}`layowt.layouts.layout_generators.GriddedLayoutGenerator.generate_layouts()` method.
     - {meth}`layowt.layouts.layout_generators.GriddedLayoutGenerator.generate_layouts()` method has an optional `progress` argument to show a progress bar.
 - {func}`layowt.layouts.utils.raster_slope` function. This function calculates a slope raster dataset from an elevation dataset.
+- {func}`layowt.layouts.utils.legacy_csv_to_layouts` function. This function reads the legacy layout .csv files and rebuilds Layouts from the contents.
 - Tutorials:
     - Added {class}`layowt.layouts.floating_layout.FloatingLayout` class tutorial.
  
 ### Changed
- - {func}`layowt.layouts.utils.layouts_to_legacy_csv` function now writes the number of turbines in the INFO_ .csv file.
+ - {func}`layowt.layouts.utils.layouts_to_legacy_csv` function now writes the number of turbines, epsg, and row and col numbers in the INFO_ .csv file.
 
  
 ### Fixed
