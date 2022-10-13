@@ -20,12 +20,16 @@ Added the FloatingLayout class and Moorings!
 - {class}`layowt.layouts.floating_layout.FloatingLayout` class: New Layout subclass with mooring design functionality!
 - {class}`layowt.layouts.layout.Layout` class:
     - Now stores the attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band`.
+    - {meth}`layowt.layouts.layout.Layout.to_shapefile` method epsg argument now optional. If not passed, takes the layout epsg code if available.
+- {class}`layowt.layouts.layout_generators.GriddedLayoutGenerator` class:
+    - Now has an implemented \_\_len\_\_ method. Returns the number of layout combinations that will be created when running the {meth}`layowt.layouts.layout_generators.GriddedLayoutGenerator.generate_layouts()` method.
+    - {meth}`layowt.layouts.layout_generators.GriddedLayoutGenerator.generate_layouts()` method has an optional `progress` argument to show a progress bar.
 - {func}`layowt.layouts.utils.raster_slope` function. This function calculates a slope raster dataset from an elevation dataset.
 - Tutorials:
     - Added {class}`layowt.layouts.floating_layout.FloatingLayout` class tutorial.
  
 ### Changed
- 
+ - {func}`layowt.layouts.utils.layouts_to_legacy_csv` function now writes the number of turbines in the INFO_ .csv file.
 
  
 ### Fixed
@@ -34,10 +38,10 @@ Added the FloatingLayout class and Moorings!
     recalculate the bathymetry samples if they are applied to a layout with an existing bathymetry constraint. Previously the geometries
     would update correctly, but the list of bathymetry samples corresponded to the values for the layout prior to the new area or
     exclusion constraint being applied.
-    - The attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band` now stored as an attribute.
-- {class}`layowt.wtg.power_curve.PowerCurve class:
+    - The attribute {attr}`layowt.layouts.layout.Layout.bathymetry_band` now stored as an attribute.  
+- {class}`layowt.wtg.power_curve.PowerCurve` class:
     - Fixed errors when reading .wtg files without release dates or revision numbers using {meth}`layowt.wtg.power_curve.PowerCurve.from_wtg()`.
-    - Fixed errors when writing .wtg files for PowerCurves without document references, revision, or release dates using meth}`layowt.wtg.power_curve.PowerCurve.to_wtg()`.
+    - Fixed errors when writing .wtg files for PowerCurves without document references, revision, or release dates using {meth}`layowt.wtg.power_curve.PowerCurve.to_wtg()`.
 
 
 
