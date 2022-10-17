@@ -8,6 +8,7 @@ import pandas as pd
 import pyproj
 import rasterio
 from layowt.grids.grid import Grid
+from layowt.layouts.floating_layout import FloatingLayout
 from layowt.layouts.layout import Layout
 from osgeo import gdal
 from rasterio.crs import CRS
@@ -144,7 +145,7 @@ def layouts_to_legacy_csv(layouts: list[Layout], filepath: str = "layouts.csv") 
                               "y_shear", "origin_x", "origin_y", "scale", "n_wtg", "epsg"]
     layout_info_df.to_csv("INFO_" + filepath, index=False)
     
-def legacy_csv_to_layouts(filepath: str) -> list[Layout]:
+def legacy_csv_to_layouts(filepath: str, layout_type : str = "fixed") -> list[Layout]:
     """
     This function reads the legacy layouts .csv and the complementary INFO_ file, and rebuilds
     Layout objects from the data. 
@@ -154,6 +155,8 @@ def legacy_csv_to_layouts(filepath: str) -> list[Layout]:
     filepath : str
         Filepath of the legacy layouts .csv file. Will find the complementary INFO_ file by adding
         "INFO_" as a preffix to this filepath.
+    layout_type : str
+         Type of layout class to create. Must be "fixed", or "floating". By default, "fixed".
 
     Returns
     -------
@@ -166,6 +169,14 @@ def legacy_csv_to_layouts(filepath: str) -> list[Layout]:
     layout_info = pd.read_csv("INFO_" + filepath)
     
     full_info = True
+    grid = None
+    
+    if layout_type.lower() == "fixed":
+        layout_class = Layout
+    elif layout_type.lower() == "floating":
+        layout_class = FloatingLayout
+    else:
+        raise ValueError(f"layout_type must be 'fixed' or 'floating'. {layout_type} passed.")
     
     for row in layout_info.itertuples():
         if full_info:
@@ -180,7 +191,7 @@ def legacy_csv_to_layouts(filepath: str) -> list[Layout]:
         
         wtg_coords = layout_df[layout_df["id"] == row.id]
         geom = MultiPoint(list(zip(wtg_coords["X"], wtg_coords["Y"])))
-        layout = Layout(grid=grid)
+        layout = layout_class(grid=grid)
         layout._raw_geom = geom
         layout.geom = geom
         
