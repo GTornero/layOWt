@@ -10,8 +10,8 @@ This page assumes that you are already familiar with the LayOWt installation pro
 
 Tutorial 1: Generating a Grid <notebooks/grid_tutorial>
 Tutorial 2: The Layout Object <notebooks/layout_tutorial>
-Tutorial 3: Procedural Generation of Gridded Layouts <notebooks/GriddedLayoutGenerator_tutorial>
-Tutorial 4: The FloatingLayout Object <notebooks/floating_layout_tutorial>
+Tutorial 3: The FloatingLayout Object <notebooks/floating_layout_tutorial>
+Tutorial 4: Procedural Generation of Gridded Layouts <notebooks/GriddedLayoutGenerator_tutorial>
 Tutorial 5: The PowerCurve Object <notebooks/PowerCurve_tutorial>
 ```
 
@@ -24,15 +24,15 @@ This tutorial shows you how to generate unifrom grids of points using the custom
 This tutorial introduces you to the LayOWt `Layout` object. This is the building block to create project scenarios.
 This section will cover the many ways to create a `Layout` and how to carry out geospatial analysis with it.
 
-## [Tutorial 3: Procedural Generation of Gridded Layouts](notebooks/GriddedLayoutGenerator_tutorial)
-
-This tutorial introduces you to LayOWt's layout generators, and how to use them to quickly produce many `Layout` configurations in only a few lines of code.
-This will cover the specific `GriddedLayoutGenerator` objects that uses `Grid` objects to define layouts.
-
-## [Tutorial 4: The FloatingLayout Object](notebooks/floating_layout_tutorial)
+## [Tutorial 3: The FloatingLayout Object](notebooks/floating_layout_tutorial)
 
 This tutorial introduces you to the `FloatingLayout`. A `FloatingLayout` object is a subclass of the `Layout` object. This means that it has access to all of
 the normal functionality of a `Layout` but also builds upon it with extra funcionalities in order to design and constrain mooring system geometries.
+
+## [Tutorial 4: Procedural Generation of Gridded Layouts](notebooks/GriddedLayoutGenerator_tutorial)
+
+This tutorial introduces you to LayOWt's layout generators, and how to use them to quickly produce many `Layout` or `FloatingLayout` configurations in only a few lines of code.
+This will cover the specific `GriddedLayoutGenerator` and `FloatingGriddedLayoutGenerator` objects that uses `Grid` objects to define layouts.
 
 ## [Tutorial 5: The PowerCurve Object](notebooks/PowerCurve_tutorial)
 
@@ -41,4 +41,3 @@ for both commercial and internally extrapolated turbines and their power curves.
 or from the commonly used DTU WAsP .wtg format. Can also be easily exported into these same formats.
 
 Common day-to-day tasks can also be easliy carried out using its methods, taks such as power curve interpolation and AEP calculations.
-
