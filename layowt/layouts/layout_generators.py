@@ -387,7 +387,17 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
         
     Warning
     --------
-    Under heavy developmnet.
+    Under heavy development.
+    
+    Current performance is slow if all constraints to turbines and moorings are required, and if bathymetry constraints and 
+    mooring radius functions are used.
+    
+    Currently, it is recommended to not apply mooring constraints within this generator and to apply them to a filtered subset of layouts
+    to ease computation times. The recommended workflow is the following:
+    
+    1. Generate layouts only with area, exclusion, and bathymetry constraints
+    2. Filter the output list to a (hopefully much smaller) subset of layous of interest discarding the rest
+    3. Generate moorings for the remaining layouts
     """
     def __init__(self,
                  n_rows: int = 10,

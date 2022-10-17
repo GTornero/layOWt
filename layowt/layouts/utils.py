@@ -214,7 +214,7 @@ def reproject_raster(filepath: str, output_path: str, target_epsg: int, resample
     target_epsg : int
         `EPSG <https://epsg.io/>`_ code of the target projection for the reprojected raster dataset.
     resample_method : int, optional
-        Resampling algorithm. Integer value used by the rasterio.enums.Resampling enumerator class to select the algorithm, by default 0.    
+        Resampling algorithm. Integer value used by the :class:`rasterio.enums.Resampling` enumerator class to select the algorithm, by default 0.    
         The mapping of values to resampling algorithm is the following:
             * nearest = 0
             * bilinear = 1
