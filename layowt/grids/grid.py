@@ -5,17 +5,15 @@ to generate layouts.
 
 import matplotlib.pyplot as plt
 import numpy as np
+from layowt.grids.utils import create_coords
 from shapely.geometry import MultiPoint, Point
-
-from .utils import create_coords
 
 
 class Grid:
-    """Grid class.
-
-    This class is responsible for holding all of the attributes required in
-    order to define a grid of points and to generate the coordinate pairs of
-    the points that make up the grid.
+    """
+    This class is responsible for holding all of the attributes required in \
+    order to define a grid of points and to generate the coordinate pairs of \
+    the points that make up the grid. \
 
     Multiple numerical and graphical methods are available to manipulate the grid
     and to visualise the coordinates.
@@ -161,7 +159,8 @@ class Grid:
 
     @property
     def coords(self) -> np.ndarray:
-        """coords Coordinates of the points in the grid based on the grid attributes
+        """
+        Coordinates of the points in the grid based on the grid attributes.
 
         Returns
         -------
@@ -188,7 +187,8 @@ class Grid:
 
     @property
     def x(self) -> np.ndarray:
-        """x 1-D array of the x coordinates of the points in the grid.
+        """
+        1-D array of the x coordinates of the points in the grid.
 
         Returns
         -------
@@ -199,7 +199,8 @@ class Grid:
 
     @property
     def y(self) -> np.ndarray:
-        """y 1-D array of the y coordinates of the points in the grid.
+        """
+        1-D array of the y coordinates of the points in the grid.
 
         Returns
         -------
@@ -211,7 +212,8 @@ class Grid:
     def plot(
         self, ax: plt.Axes | None = None, figsize: tuple = (8, 6)
     ) -> tuple[plt.Figure, plt.Axes]:  # type: ignore
-        """plot Plot the grid of points.
+        """
+        Plot the grid of points.
 
         Parameters
         ----------
@@ -249,7 +251,8 @@ class Grid:
         return fig, ax
 
     def set_scale(self, rotor_diameter: float, inplace: bool = False):
-        """set_scale Set the scaling factor attribute used to scale the non-dimensional
+        """
+        Set the scaling factor attribute used to scale the non-dimensional \
         row and column spacings into the real space.
 
         Parameters
@@ -283,7 +286,8 @@ class Grid:
             )
 
     def translate(self, x: float, y: float, inplace: bool = False):
-        """translate Translate the grid by shifting the origin
+        """
+        Translate the grid by shifting the origin.
 
         Parameters
         ----------
@@ -317,7 +321,8 @@ class Grid:
             )
 
     def rotate(self, angle: float, inplace: bool = False):
-        """rotate Rotate the Grid.
+        """
+        Rotate the Grid.
 
         Parameters
         ----------
@@ -349,7 +354,8 @@ class Grid:
             )
 
     def to_multipoint(self) -> MultiPoint:
-        """to_multipoint returns the Shapely.geometry.MultiPoint representation
+        """
+        Returns the Shapely.geometry.MultiPoint representation \
         of the Grid instance.
 
         Returns
@@ -360,7 +366,8 @@ class Grid:
         return MultiPoint(self.coords)
 
     def to_points(self) -> list[Point]:
-        """to_points This method returns the Grid instance geometries as a list
+        """
+        This method returns the Grid instance geometries as a list \
         of shapely Point geometries.
 
         Returns

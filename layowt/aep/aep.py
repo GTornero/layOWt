@@ -15,11 +15,11 @@ def _weibull_dist(wind_speed: float | Iterable[float], weibull_a: float, weibull
 
 def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str = "GWh", leap_year: bool=True) -> float:
     """
-    This function calculates the gross AEP using a LayOWt PowerCurve and a Weibull distribution.
-    The method integrates the result of the dicrete function resulting from the multiplication of
-    the number of hours in a year, the PowerCurve power curve, and the 2-parameter Weibull
-    probability density function. The integration is carried out using Simpon's rule as implemented
-    in :func:`scipy.integrate.simpson`. The calculted AEP can be reported in Wh, kWh, MWh, and GWh.
+    This function calculates the gross AEP using a LayOWt PowerCurve and a Weibull distribution. \
+    The method integrates the result of the dicrete function resulting from the multiplication of \
+    the number of hours in a year, the PowerCurve power curve, and the 2-parameter Weibull \
+    probability density function. The integration is carried out using Simpon's rule as implemented \
+    in :func:`scipy.integrate.simpson`. The calculted AEP can be reported in Wh, kWh, MWh, and GWh. \
     
 
     .. math::
@@ -134,9 +134,9 @@ def weibull_wpd(weibull_a: float, weibull_k: float, air_density: float = 1.225) 
 
 def weibull_aep_map(pc: PowerCurve, weibull_a: str, weibull_k: str, output_path: str = "aep.tif", units: str = "GWh", leap_year: bool=True) -> None:
     """
-    This function takes in a PowerCurve and Weibull A (scale) and k (shape) parameter raster
-    datasets, and creates a gross annual energy production raster dataset. The :func:`weibull_aep`
-    function is used to calculate gross annual energy production.
+    This function takes in a PowerCurve and Weibull A (scale) and k (shape) parameter raster \
+    datasets, and creates a gross annual energy production raster dataset. The :func:`weibull_aep` \
+    function is used to calculate gross annual energy production. \
     
     The CRS, shape, and cell size of the Weibull A and k datasets must be the same. I.e. the rasters
     must have the same extent and cells must be aligned prior to being used with this function.
