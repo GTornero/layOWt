@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
-## [0.2.0] - [INSERT DATE HERE!]
+## [0.2.0] - [2022-10-17]
  
 LayOWt Version 0.2.0
 
