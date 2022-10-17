@@ -17,16 +17,16 @@ from shapely.ops import unary_union
 
 class FloatingLayout(Layout):
     """
-    This class is responsible for holding all of the data structures required
-    in order to define a floating project scenario and to generate the coordinate pairs
-    of the points that make up the grid.
+    This class is responsible for holding all of the data structures required \
+    in order to define a floating project scenario and to generate the coordinate pairs \
+    of the points that make up the grid. \
     
-    This Layout subclass adds onto the Layout class by adding functions and methods to
-    generate valid mooring layout geometries. All attributes, methods, and properties of the Layout
-    class are available to the FloatingLayout class.
+    This Layout subclass adds onto the Layout class by adding functions and methods to \
+    generate valid mooring layout geometries. All attributes, methods, and properties of the Layout \
+    class are available to the FloatingLayout class. \
 
-    Multiple numerical, spatial and graphical methods are available to
-    manipulate the scenario o conform to constraint and set properties.
+    Multiple numerical, spatial and graphical methods are available to \
+    manipulate the scenario o conform to constraint and set properties. \
     
     Parameters
     ----------

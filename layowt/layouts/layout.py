@@ -24,12 +24,12 @@ from ..grids import Grid
 
 class Layout:
     """
-    This class is responsible for holding all of the data structures required
-    in order to define a project scenario and to generate the coordinate pairs
-    of the points that make up the grid.
-
-    Multiple numerical, spatial and graphical methods are available to
-    manipulate the scenario o conform to constraint and set properties.
+    This class is responsible for holding all of the data structures required \
+    in order to define a project scenario and to generate the coordinate pairs \
+    of the points that make up the grid. \
+    \
+    Multiple numerical, spatial and graphical methods are available to \
+    manipulate the scenario o conform to constraint and set properties. \
     
     Parameters
     ----------
@@ -907,7 +907,6 @@ class Layout:
         schema = {"geometry": "Point", "properties": {"id": "int"}}
 
         driver = "ESRI Shapefile"
-        crs = pyproj.CRS.from_epsg(epsg).to_dict()
 
         with fiona.open(
             filepath, "w", crs=crs, driver=driver, schema=schema
