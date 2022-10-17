@@ -5,13 +5,15 @@ This class can be used to design and represent floating turbines and their moori
 
 from typing import Callable
 
+import fiona
 import geopandas as gp
 import numpy as np
+import pyproj
 from layowt.grids import Grid
-from layowt.layouts.layout import Layout
+from layowt.layouts.layout import Layout, _is_epsg
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from shapely.geometry import MultiLineString, MultiPolygon, Polygon
+from shapely.geometry import MultiLineString, MultiPolygon, Polygon, mapping
 from shapely.ops import unary_union
 
 
@@ -713,3 +715,43 @@ class FloatingLayout(Layout):
              gp.GeoSeries(self.mooring_exclusions).plot(ax=ax, facecolor='red', alpha=0.2)
         
         return fig, ax
+    
+    def to_shapefile(self, filepath: str, epsg: int = None) -> None:
+        """
+        Saves the FloatingLayout turbine positions as Point geometries in a Shapefile.\
+        If the FloatingLayout has moorings, the moorings are saved as MultiLine geometries in a separate Shapefile.
+
+        Parameters
+        ----------
+        filepath : str
+            Filepath to save the Shapefile as. The mooring shapefile will have the "moorings_" prefix.
+        epsg : int
+            Valid `EPSG <https://epsg.io/>`_ code for the projection of the Shapefile(s). If passed,
+            this code takes precedence over the layout epsg code (if defined). By default, None.
+        
+        Raises
+        ------
+        ValueError
+            No EPSG code available for the shapefile CRS.
+        """
+        
+        super().to_shapefile(filepath, epsg)
+        
+        if epsg is None and self.epsg is not None:
+            crs = pyproj.CRS.from_epsg(self.epsg).to_dict()
+        elif epsg is None and self.epsg is None:
+            raise ValueError("No EPSG code provided.")
+        elif _is_epsg(epsg):
+            crs = pyproj.CRS.from_epsg(epsg).to_dict()
+        
+        if self.has_moorings():
+            # TODO: Create a more detailed attribute schema (wakes, water depth, etc.).
+            schema = {"geometry": "MultiLineString", "properties": {"id": "int", "radius": "float"}}
+
+            driver = "ESRI Shapefile"
+
+            with fiona.open(
+                "moorings_"+filepath, "w", crs=crs, driver=driver, schema=schema
+            ) as new_file:
+                for idx, geom in enumerate(self.mooring_geom, start=1):  # type: ignore
+                    new_file.write({"geometry": mapping(geom), "properties": {"id": idx, "radius": float(self.mooring_radii[idx - 1])}})
