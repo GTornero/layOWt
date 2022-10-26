@@ -15,7 +15,9 @@ LayOWt Version 0.2.1
 Fixing the layout generators memory leak problem and minor quality of life updates.
  
 ### Added
-- {func}`layowt.layouts.utils.layouts_to_hdf5` function. This function allows to save a list of layouts to an hdf5 file.
+- {func}`layowt.layouts.utils.layouts_to_hdf5` function. This function allows to save a list of layouts to an hdf5 layouts file.
+- {func}`layowt.layouts.utils.layouts_from_hdf5` function. This function allows to load a list of layouts from an hdf5 layouts file.
+- {func}`layowt.layouts.utils.hdf5_to_dataframe` function. This function allows to load layouts DataFrames from an hdf5 layouts file.
  
 ### Changed
 - {class}`layowt.layouts.layout_generators.GriddedLayoutGenerator` class:
