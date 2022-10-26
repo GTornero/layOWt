@@ -8,6 +8,29 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
+## [0.2.1] - [ADD DATE HERE]
+ 
+LayOWt Version 0.2.1
+
+Fixing the layout generators memory leak problem and minor quality of life updates.
+ 
+### Added
+- {func}`layowt.layouts.utils.layouts_to_hdf5` function. This function allows to save a list of layouts to an hdf5 file.
+ 
+### Changed
+- {class}`layowt.layouts.layout_generators.GriddedLayoutGenerator` class:
+    - The n_wtg argument has been changes from an int to a tuple(int, int). This now allows to select layouts between a minimum and maximum number of turbines.
+- {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
+    - The n_wtg argument has been changes from an int to a tuple(int, int). This now allows to select layouts between a minimum and maximum number of turbines.
+
+### Fixed
+- {class}`layowt.layouts.layout_generators.GriddedLayoutGenerator` class:
+    - Memory leak bug has been addressed by adding the option to save results directly to file and clearing memory when using the {meth}`layowt.layouts.layout_generators.GriddedLayoutGenerator.generate_layouts()` method.
+- {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
+    - Memory leak bug has been addressed by adding the option to save results directly to file and clearing memory when using the {meth}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator.generate_layouts()` method.
+
+
+=======================================================================
 ## [0.2.0] - [2022-10-17]
  
 LayOWt Version 0.2.0

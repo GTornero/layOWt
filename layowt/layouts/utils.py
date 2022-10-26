@@ -20,7 +20,9 @@ from sqlalchemy import create_engine
 
 
 def geoms_from_shapefile(filepath: str, target_epsg: int | None = None) -> list:
-    """geoms_from_shapefile loads shapely geometry objects from a shapefile. Can reproject geometries on the fly from the source CRS into the desired CRS defined by its EPSG code in the optional target_epsg argument.
+    """
+    Loads shapely geometry objects from a shapefile. Can reproject geometries on the fly from the \
+    source CRS into the desired CRS defined by its EPSG code in the optional target_epsg argument.
 
     Parameters
     ----------
@@ -31,7 +33,7 @@ def geoms_from_shapefile(filepath: str, target_epsg: int | None = None) -> list:
 
     Returns
     -------
-    list
+    list[Geometry]
         list of shapely geometries contained in the shapefile.
     """
     with fiona.open(filepath) as src:
@@ -62,7 +64,8 @@ def geoms_from_postgis(
     target_epsg: int | None = None,
     **kwargs,
 ) -> list:
-    """geoms_from_postgis loads a list of shapely geometry objects from a PostGIS table.
+    """
+    Loads a list of shapely geometry objects from a PostGIS table.
 
     Parameters
     ----------
@@ -85,7 +88,7 @@ def geoms_from_postgis(
 
     Returns
     -------
-    list
+    list[Geometry]
         list of shapely geometries contained in the PostGIS table.
     """
     # TODO: Should change the geopandas method from_postgis to read_postgis
@@ -336,11 +339,11 @@ def layouts_to_hdf5(layouts: list[Layout | FloatingLayout], filepath: str, mode:
         Filepath of the hdf5 file to save layouts to.
     mode : str, optional
         File creation mode, by default "a". Valid modes are:
-        - "r+": Read/write, file must exist
-        - "w" : Create file, truncate if exists
-        - "w-": Create file, fail if exists
-        - "x" : Create file, fail if exists
-        - "a" : Read/write if exists, create otherwise
+            * "r+": Read/write, file must exist
+            * "w" : Create file, truncate if exists
+            * "w-": Create file, fail if exists
+            * "x" : Create file, fail if exists
+            * "a" : Read/write if exists, create otherwise
     start_id : int, optional
         Number at which layout ids start counting from in the hdf5 file, by default 0.
     
