@@ -52,6 +52,8 @@ class PowerCurve:
         ID of the power curve for traceability purposes, by default None.
     manufacturer : Optional[str], optional
         Manufacturer of the power curve for traceability purposes, by default None.
+    idling_power : Optional[float], optional
+        Idling power consumption in kW.
     
     Attributes
     ----------
@@ -64,7 +66,7 @@ class PowerCurve:
     def __init__(self, wind_speed: Iterable[float], power: Iterable[float], ct: Iterable[float],
                  rotor_diameter: Optional[float]=None, hub_height: Optional[float]=None, air_density: Optional[float]=None,
                  cut_in: Optional[float]=None, rated_ws: Optional[float]=None, cut_out: Optional[float]=None,
-                 curve_id: Optional[str]=None, manufacturer: Optional[str]=None) -> None:
+                 curve_id: Optional[str]=None, manufacturer: Optional[str]=None, idling_power: Optional[float]=None) -> None:
         
         data = {"wind_speed": wind_speed, "power": power, "ct": ct}
 
@@ -82,7 +84,8 @@ class PowerCurve:
                            "curve_date": date.today(),
                            "ref_document_id": "Unknown",
                            "revision": 0,
-                           "curve_type": None}
+                           "curve_type": None,
+                           "idling_power": idling_power}
         
         if cut_in is None:
             self.attributes["cut_in"] = self.data[self.data["power"]!=0].index[0]
@@ -196,6 +199,7 @@ class PowerCurve:
         pc.attributes["ref_document_id"] = pc_attrs["ref_document_id"][0] # FIXME: this might throw an error if internal turbines dont have a reference doc.
         pc.attributes["revision"] = pc_attrs["revision"][0]
         pc.attributes["curve_type"] = curve_type.title()
+        pc.atrributes["idling_power"] = pc_attrs["idle_power_kw"]
         
         return pc
     
