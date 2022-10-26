@@ -3,6 +3,7 @@
 
 import fiona
 import geopandas as gp
+import h5py
 import numpy as np
 import pandas as pd
 import pyproj
@@ -281,3 +282,86 @@ def raster_slope(filepath: str, output_path: str = "slope.tif", slope_format: st
     input_dem = gdal.Open(filepath)
     gdal.DEMProcessing(output_path, input_dem, "slope", slopeFormat=slope_format, scale=scale)
     input_dem = None
+
+def _get_grid_params(layout):
+    return (layout.grid.angle, layout.grid.row_step, layout.grid.col_step,
+            layout.grid.n_rows, layout.grid.n_cols, layout.grid.row_offset,
+            layout.grid.col_offset, layout.grid.x_shear, layout.grid.y_shear,
+            layout.grid.origin[0], layout.grid.origin[1], layout.grid.scale,
+            layout.n_wtg, layout.epsg)
+
+def _layouts_to_coords_array(layouts, start: int = 0):
+    layout_dt = np.dtype({"names": ["id", "x", "y"],
+                    'formats': [(float)]*4})
+    
+    layout_ids = [np.ones(layout.n_wtg)*idx for idx, layout in enumerate(layouts, start=start)]
+    layout_xs = []
+    layout_ys = []
+    for layout in layouts:
+        coords = layout.coords
+        layout_xs.append(coords[:, 0])
+        layout_ys.append(coords[:, 1])
+    layout_ids = np.concatenate(layout_ids)
+    layout_xs = np.concatenate(layout_xs)
+    layout_ys = np.concatenate(layout_ys)
+    
+    layouts_arr = np.stack((layout_ids, layout_xs, layout_ys), axis=1)
+    layouts_arr.dtype=layout_dt
+    
+    return layouts_arr
+
+def _layouts_to_info_array(layouts, start: int = 0):
+    vect_get_grid_params = np.vectorize(_get_grid_params)
+    
+    info_array = (np.arange(start, start + len(layouts)), *vect_get_grid_params(np.array(layouts)))
+    info_array = np.stack(info_array, axis=1)
+    
+    names = ["id", "angle", "row_step", "col_step", "n_rows", "n_cols", "row_offset", "col_offset", "x_shear", "y_shear", "origin_x", "origin_y", "scale", "n_wtg", "epsg"]
+    formats = [(float)]*15
+    info_dt = np.dtype({"names": names,
+                    'formats': formats})
+    info_array.dtype = info_dt
+    
+    return info_array
+
+def layouts_to_hdf5(layouts: list[Layout | FloatingLayout], filepath: str, mode: str = 'a', start_id: int = 0) -> None:
+    """
+    Function to save layouts to an hdf5 file.
+
+    Parameters
+    ----------
+    layouts : list[Layout  |  FloatingLayout]
+        List of layouts to save to disk.
+    filepath : str
+        Filepath of the hdf5 file to save layouts to.
+    mode : str, optional
+        File creation mode, by default "a". Valid modes are:
+        - "r+": Read/write, file must exist
+        - "w" : Create file, truncate if exists
+        - "w-": Create file, fail if exists
+        - "x" : Create file, fail if exists
+        - "a" : Read/write if exists, create otherwise
+    start_id : int, optional
+        Number at which layout ids start counting from in the hdf5 file, by default 0.
+    
+    Raises
+    ------
+    ValueError
+        If mode is not valid.
+    """
+    if mode not in ["r+", "w", "w-", "x", "a"]:
+        raise ValueError(f"Invalid value for mode passed. {mode=} passed.")
+    
+    layouts_array = _layouts_to_coords_array(layouts, start=start_id)
+    info_array = _layouts_to_info_array(layouts, start=start_id)
+    
+    with h5py.File(filepath, mode) as f:
+        if "coordinates" not in f:
+            f.create_dataset("coordinates", data=layouts_array, maxshape=(None, None))
+        else:
+            f["coordinates"].resize((f["coordinates"].shape[0] + layouts_array.shape[0]), axis = 0)
+        
+        if "info" not in f:
+            f.create_dataset("info", data=info_array, maxshape=(None, None))
+        else:
+            f["info"].resize((f["info"].shape[0] + info_array.shape[0]), axis = 0)
