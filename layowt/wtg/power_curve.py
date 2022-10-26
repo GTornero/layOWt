@@ -199,7 +199,7 @@ class PowerCurve:
         pc.attributes["ref_document_id"] = pc_attrs["ref_document_id"][0] # FIXME: this might throw an error if internal turbines dont have a reference doc.
         pc.attributes["revision"] = pc_attrs["revision"][0]
         pc.attributes["curve_type"] = curve_type.title()
-        pc.atrributes["idling_power"] = pc_attrs["idle_power_kw"]
+        pc.attributes["idling_power"] = pc_attrs["idle_power_kw"][0]
         
         return pc
     
