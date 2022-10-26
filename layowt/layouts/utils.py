@@ -160,12 +160,12 @@ def legacy_csv_to_layouts(filepath: str, layout_type : str = "fixed") -> list[La
         Filepath of the legacy layouts .csv file. Will find the complementary INFO_ file by adding
         "INFO_" as a preffix to this filepath.
     layout_type : str
-         Type of layout class to create. Must be "fixed", or "floating". By default, "fixed".
+        Type of layout class to create. Must be "fixed", or "floating". By default, "fixed".
 
     Returns
     -------
-    list[Layout]
-        List of Layouts rebuilt from the .csv files.
+    list[Layout | FloatingLayout]
+        List of layouts rebuilt from the .csv files.
     """
     layouts = []
     
@@ -180,7 +180,7 @@ def legacy_csv_to_layouts(filepath: str, layout_type : str = "fixed") -> list[La
     elif layout_type.lower() == "floating":
         layout_class = FloatingLayout
     else:
-        raise ValueError(f"layout_type must be 'fixed' or 'floating'. {layout_type} passed.")
+        raise ValueError(f"layout_type must be 'fixed' or 'floating'. '{layout_type}' passed.")
     
     for row in layout_info.itertuples():
         if full_info:
@@ -368,3 +368,128 @@ def layouts_to_hdf5(layouts: list[Layout | FloatingLayout], filepath: str, mode:
             f.create_dataset("info", data=info_array, maxshape=(None, None))
         else:
             f["info"].resize((f["info"].shape[0] + info_array.shape[0]), axis = 0)
+
+def layouts_from_hdf5(filepath: str, start_id: int = 0, end_id: int | None = None, layout_type : str = "fixed") -> list[Layout | FloatingLayout]:
+    """
+    Function to read an hdf5 file and create layouts from the stored data. Can return Layout or \
+    FloatingLayout classes.
+
+    Parameters
+    ----------
+    filepath : str
+        Filepath of the hdf5 file to read.
+    start_id : int, optional
+        Minimum bound of the layout id used to slice the hdf5 file. Uses the numpy convention of an inclusive lower limit. By default 0.
+    end_id : int | None, optional
+        Maximum bound of the layout id used to slice the hdf5 file. Uses the numpy convention of an non-inclusive upper limit. By default None.
+    layout_type : str, optional
+        Type of layout class to create. Must be "fixed", or "floating". By default, "fixed".
+
+    Returns
+    -------
+    list[Layout | FloatingLayout]
+        List of layouts rebuilt from the .csv files.
+
+    Raises
+    ------
+    ValueError
+        If layout_type is not "fixed" OR "floating".
+    ValueError
+        If start_id and/or end_id are out of range of the hdf5 file and if start_id and end_id are equal.
+    """
+    
+    if layout_type.lower() == "fixed":
+        layout_class = Layout
+    elif layout_type.lower() == "floating":
+        layout_class = FloatingLayout
+    else:
+        raise ValueError(f"layout_type must be 'fixed' or 'floating'. '{layout_type}' passed.")
+    
+    layouts = []
+    
+    with h5py.File(filepath, 'r') as f:
+        
+        if (start_id >= f['info'].shape[0]) or (end_id > f['info'].shape[0]) or (start_id == end_id):
+            raise ValueError(f"Invalid start and/or end ids passed. {start_id=} and {end_id=} passed for file of shape {f['info'].shape}.")
+        
+        layout_info = np.squeeze(f["info"][start_id:end_id])
+                                 
+        if start_id == 0:
+            coords_start = 0
+        else:
+            coords_start = int(f["info"][0:start_id]["n_wtg"].sum())
+        
+        if end_id is None:
+            coords_end = f["coordinates"].shape[0]
+        else:
+            coords_end = int(coords_start + layout_info["n_wtg"].sum() + 1)
+        
+        coords_array = np.squeeze(f["coordinates"][coords_start:coords_end])
+    
+    for info_row in layout_info:
+        row_dict = {key: val for key, val in zip(layout_info.dtype.names, info_row)}
+        row_dict.pop("id")
+        row_dict.pop("epsg")
+        row_dict.pop("n_wtg")
+        row_dict["origin"] = (row_dict["origin_x"], row_dict["origin_y"])
+        row_dict.pop("origin_x")
+        row_dict.pop("origin_y")
+        grid = Grid(**row_dict)
+        
+        geom = MultiPoint(list(zip(coords_array[coords_array["id"] == info_row["id"]]["x"], coords_array[coords_array["id"] == info_row["id"]]["y"])))
+        
+        layout = layout_class(grid=grid)
+        layout.geom = geom
+        layout.epsg = info_row["epsg"]
+        layouts.append(layout)
+    
+    return layouts
+
+def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Function to read an hdf5 layouts file and create pandas DataFrames from the stored data.
+
+    Parameters
+    ----------
+    filepath : str
+        Filepath of the hdf5 file to read.
+    start_id : int, optional
+        Minimum bound of the layout id used to slice the hdf5 file. Uses the numpy convention of an inclusive lower limit. By default 0.
+    end_id : int | None, optional
+        Maximum bound of the layout id used to slice the hdf5 file. Uses the numpy convention of an non-inclusive upper limit. By default None.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, pd.DataFrame]
+        Tuple (coords_df, info_df) where tehe coords_df is the DataFrame of all turbine coordinates
+        and info_df is the DataFrame with all the layout information.
+
+    Raises
+    ------
+    ValueError
+        If start_id and/or end_id are out of range of the hdf5 file and if start_id and end_id are equal.
+    """
+    
+    with h5py.File(filepath, 'r') as f:
+        
+        if (start_id >= f['info'].shape[0]) or (end_id > f['info'].shape[0]) or (start_id == end_id):
+            raise ValueError(f"Invalid start and/or end ids passed. {start_id=} and {end_id=} passed for file of shape {f['info'].shape}.")
+        
+        layout_info = np.squeeze(f["info"][start_id:end_id])
+                                 
+        if start_id == 0:
+            coords_start = 0
+        else:
+            coords_start = int(f["info"][0:start_id]["n_wtg"].sum())
+        
+        if end_id is None:
+            coords_end = f["coordinates"].shape[0]
+        else:
+            coords_end = int(coords_start + layout_info["n_wtg"].sum() + 1)
+        
+        coords_array = np.squeeze(f["coordinates"][coords_start:coords_end])
+        
+        coords_df = pd.DataFrame(coords_array)
+        info_df = pd.DataFrame(layout_info)
+    
+    return (coords_df, info_df)
