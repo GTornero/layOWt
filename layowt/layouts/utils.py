@@ -485,7 +485,7 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
         if end_id is None:
             coords_end = f["coordinates"].shape[0]
         else:
-            coords_end = int(coords_start + layout_info["n_wtg"].sum() + 1)
+            coords_end = int(coords_start + layout_info["n_wtg"].sum())
         
         coords_array = np.squeeze(f["coordinates"][coords_start:coords_end])
         
