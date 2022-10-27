@@ -475,7 +475,10 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
         if (start_id >= f['info'].shape[0]) or (end_id > f['info'].shape[0]) or (start_id == end_id):
             raise ValueError(f"Invalid start and/or end ids passed. {start_id=} and {end_id=} passed for file of shape {f['info'].shape}.")
         
-        layout_info = np.squeeze(f["info"][start_id:end_id])
+        if end_id - start_id == 1:
+            layout_info = f["info"][start_id:end_id][0]
+        else:
+            layout_info = np.squeeze(f["info"][start_id:end_id])
                                  
         if start_id == 0:
             coords_start = 0
