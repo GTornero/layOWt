@@ -412,7 +412,10 @@ def layouts_from_hdf5(filepath: str, start_id: int = 0, end_id: int | None = Non
         if (start_id >= f['info'].shape[0]) or (end_id > f['info'].shape[0]) or (start_id == end_id):
             raise ValueError(f"Invalid start and/or end ids passed. {start_id=} and {end_id=} passed for file of shape {f['info'].shape}.")
         
-        layout_info = np.squeeze(f["info"][start_id:end_id])
+        if end_id - start_id == 1:
+            layout_info = f["info"][start_id:end_id][0]
+        else:
+            layout_info = np.squeeze(f["info"][start_id:end_id])
                                  
         if start_id == 0:
             coords_start = 0
@@ -422,7 +425,7 @@ def layouts_from_hdf5(filepath: str, start_id: int = 0, end_id: int | None = Non
         if end_id is None:
             coords_end = f["coordinates"].shape[0]
         else:
-            coords_end = int(coords_start + layout_info["n_wtg"].sum() + 1)
+            coords_end = int(coords_start + layout_info["n_wtg"].sum())
         
         coords_array = np.squeeze(f["coordinates"][coords_start:coords_end])
     
@@ -461,7 +464,7 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
     Returns
     -------
     tuple[pd.DataFrame, pd.DataFrame]
-        Tuple (coords_df, info_df) where tehe coords_df is the DataFrame of all turbine coordinates
+        Tuple (coords_df, info_df) where the coords_df is the DataFrame of all turbine coordinates
         and info_df is the DataFrame with all the layout information.
 
     Raises
