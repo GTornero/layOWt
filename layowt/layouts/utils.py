@@ -1,6 +1,8 @@
 """ This module contains utility functions for the Layout class.
 """
 
+from typing import Iterable
+
 import fiona
 import geopandas as gp
 import h5py
@@ -363,11 +365,13 @@ def layouts_to_hdf5(layouts: list[Layout | FloatingLayout], filepath: str, mode:
             f.create_dataset("coordinates", data=layouts_array, maxshape=(None, None))
         else:
             f["coordinates"].resize((f["coordinates"].shape[0] + layouts_array.shape[0]), axis = 0)
+            f["coordinates"][-layouts_array.shape[0]:] = layouts_array
         
         if "info" not in f:
             f.create_dataset("info", data=info_array, maxshape=(None, None))
         else:
             f["info"].resize((f["info"].shape[0] + info_array.shape[0]), axis = 0)
+            f["info"][-info_array.shape[0]:] = info_array
 
 def layouts_from_hdf5(filepath: str, start_id: int = 0, end_id: int | None = None, layout_type : str = "fixed") -> list[Layout | FloatingLayout]:
     """
@@ -408,6 +412,8 @@ def layouts_from_hdf5(filepath: str, start_id: int = 0, end_id: int | None = Non
     layouts = []
     
     with h5py.File(filepath, 'r') as f:
+        if end_id is None:
+            end_id = f['info'].shape[0]
         
         if (start_id >= f['info'].shape[0]) or (end_id > f['info'].shape[0]) or (start_id == end_id):
             raise ValueError(f"Invalid start and/or end ids passed. {start_id=} and {end_id=} passed for file of shape {f['info'].shape}.")
@@ -448,7 +454,8 @@ def layouts_from_hdf5(filepath: str, start_id: int = 0, end_id: int | None = Non
     
     return layouts
 
-def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = None,
+                      indexes: int | Iterable[int] | None = None, out: str = "both") -> tuple[pd.DataFrame, pd.DataFrame] | pd.DataFrame:
     """
     Function to read an hdf5 layouts file and create pandas DataFrames from the stored data.
 
@@ -460,6 +467,15 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
         Minimum bound of the layout id used to slice the hdf5 file. Uses the numpy convention of an inclusive lower limit. By default 0.
     end_id : int | None, optional
         Maximum bound of the layout id used to slice the hdf5 file. Uses the numpy convention of an non-inclusive upper limit. By default None.
+    indexes : int | Iterable[int] | None, optional
+        Integer or Iterable of integers of the layout indexes to read from the file. If a value is
+        passed, the start_id and end_id argument are ignored. To extract a single layout it will be
+        faster to set start_id and end_id to the same value rather than use the indexes argument.
+        By default None.
+    out : str, optional
+        Select what outputs are returned. If "both" then both the coordinates and info dataframe are returned.
+        If "info" or "coordinates", only the info or coordinates dataframes will be returned respectively.
+        Case insensitive. By default, "both".
 
     Returns
     -------
@@ -470,32 +486,77 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
     Raises
     ------
     ValueError
+        If invalid value for out was passed.
+    ValueError
         If start_id and/or end_id are out of range of the hdf5 file and if start_id and end_id are equal.
     """
     
-    with h5py.File(filepath, 'r') as f:
-        
-        if (start_id >= f['info'].shape[0]) or (end_id > f['info'].shape[0]) or (start_id == end_id):
-            raise ValueError(f"Invalid start and/or end ids passed. {start_id=} and {end_id=} passed for file of shape {f['info'].shape}.")
-        
-        if end_id - start_id == 1:
-            layout_info = f["info"][start_id:end_id][0]
-        else:
-            layout_info = np.squeeze(f["info"][start_id:end_id])
-                                 
-        if start_id == 0:
-            coords_start = 0
-        else:
-            coords_start = int(f["info"][0:start_id]["n_wtg"].sum())
-        
-        if end_id is None:
-            coords_end = f["coordinates"].shape[0]
-        else:
-            coords_end = int(coords_start + layout_info["n_wtg"].sum())
-        
-        coords_array = np.squeeze(f["coordinates"][coords_start:coords_end])
-        
-        coords_df = pd.DataFrame(coords_array)
-        info_df = pd.DataFrame(layout_info)
+    if out.lower() not in ["both", "info", "coordinates"]:
+        raise ValueError(f"Invalid value for out. Must be one of 'both', 'info', or 'coordinates'. {out=} was passed.")
     
-    return (coords_df, info_df)
+    with h5py.File(filepath, 'r') as f:
+        if indexes is None:
+            if end_id is None:
+                end_id = f['info'].shape[0]
+
+            if (start_id >= f['info'].shape[0]) or (end_id > f['info'].shape[0]) or (start_id == end_id):
+                raise ValueError(f"Invalid start and/or end ids passed. {start_id=} and {end_id=} passed for file of shape {f['info'].shape}.")
+
+            if end_id - start_id == 1:
+                layout_info = f["info"][start_id:end_id][0]
+            else:
+                layout_info = np.squeeze(f["info"][start_id:end_id])
+            
+            if out.lower() == "info":
+                info_df = pd.DataFrame(layout_info)
+                return info_df
+            else:
+                if start_id == 0:
+                    coords_start = 0
+                else:
+                    coords_start = int(f["info"][0:start_id]["n_wtg"].sum())
+
+                if end_id is None:
+                    coords_end = f["coordinates"].shape[0]
+                else:
+                    coords_end = int(coords_start + layout_info["n_wtg"].sum())
+
+                coords_array = np.squeeze(f["coordinates"][coords_start:coords_end])
+                coords_df = pd.DataFrame(coords_array)
+                if out.lower() == "coordinates":
+                    return coords_df
+                else:
+                    info_df = pd.DataFrame(layout_info)
+                    return (coords_df, info_df)
+        else:
+            if out.lower() in ["both", "info"]:
+                if isinstance(indexes, int) or len(indexes) == 1:
+                    layout_info = f["info"][indexes]
+                else:
+                    layout_info = np.squeeze(f["info"][indexes])
+                    
+                info_df = pd.DataFrame(layout_info)
+                
+                if out.lower() == "info":
+                    return info_df
+                    
+                coords_array = np.squeeze(f["coordinates"][np.isin(f["coordinates"]["id"], indexes)])
+            
+                coords_df = pd.DataFrame(coords_array)
+                return (coords_df, info_df)
+            if out.lower() in ["both", "coordinates"]:
+                coords_array = np.squeeze(f["coordinates"][np.isin(f["coordinates"]["id"], indexes)])
+                
+                coords_df = pd.DataFrame(coords_array)
+                
+                if out.lower() == "coordinates":
+                    return coords_df
+                
+                if isinstance(indexes, int) or len(indexes) == 1:
+                    layout_info = f["info"][indexes]
+                else:
+                    layout_info = np.squeeze(f["info"][indexes])
+                    
+                info_df = pd.DataFrame(layout_info)
+                
+                return (coords_df, info_df)
