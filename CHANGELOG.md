@@ -8,6 +8,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
+## [0.2.2] - [2022-10-28]
+ 
+LayOWt Version 0.2.2
+
+Bugfixes to {func}`layowt.layouts.utils.layouts_to_hdf5` function.
+ 
+### Added
+- {func}`layowt.layouts.utils.hdf5_to_dataframe` function has additional out and indexes arguments. The out argument lets the user
+select if either or both of the layout info and coordinates dataframes are returned by the function. The indexes argument lets the user
+select layouts by index rather than by continuous chunks as when using the start_id and end_id arguments.
+- {func}`layowt.layouts.utils.layouts_from_hdf5` function has additional indexes argument. This new argument lets the user
+select layouts by index rather than by continuous chunks as when using the start_id and end_id arguments.
+
+ 
+### Changed
+
+
+### Fixed
+- Fixed bug where the {func}`layowt.layouts.utils.layouts_to_hdf5` function was not appending layout data to the hdf5 file from the second dump onwards.
+
+
+=======================================================================
 ## [0.2.1] - [2022-10-26]
  
 LayOWt Version 0.2.1
@@ -21,9 +43,9 @@ Fixing the layout generators memory leak problem and minor quality of life updat
  
 ### Changed
 - {class}`layowt.layouts.layout_generators.GriddedLayoutGenerator` class:
-    - The n_wtg argument has been changes from an int to a tuple(int, int). This now allows to select layouts between a minimum and maximum number of turbines.
+    - The n_wtg argument has been changed from an int to a tuple(int, int). This now allows to select layouts between a minimum and maximum number of turbines.
 - {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
-    - The n_wtg argument has been changes from an int to a tuple(int, int). This now allows to select layouts between a minimum and maximum number of turbines.
+    - The n_wtg argument has been changed from an int to a tuple(int, int). This now allows to select layouts between a minimum and maximum number of turbines.
 
 ### Fixed
 - {class}`layowt.layouts.layout_generators.GriddedLayoutGenerator` class:
