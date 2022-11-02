@@ -29,9 +29,9 @@ class GriddedLayoutGenerator:
         An iterable with the non-dimensional row distances to iterate through when creating gridded layouts, by default np.arange(5,10.5, 0.5).
     col_steps : Iterable[float], optional
         An iterable with the non-dimensional column distances to iterate through when creating gridded layouts, by default np.arange(5,10.5, 0.5).
-    row_offset : bool, optional
+    row_offset : bool | Iterable[bool], optional
         Offset every other row by half row_step to create a diamond shaped grid. Cannot be True when col_offset is also True. By default False.
-    col_offset : bool, optional
+    col_offset : bool | Iterable[bool], optional
         Offset every other column by half row_step to create a diamond shaped grid. Cannot be True when row_offset is also True. By default False.
     angles : Iterable[float], optional
         An iterable of angles in degrees to iterate through when creating gridded layouts, by default np.arange(0, 1).
@@ -88,8 +88,8 @@ class GriddedLayoutGenerator:
                  n_cols: int = 10,
                  row_steps: Iterable[float] = np.arange(5,10.5, 0.5),
                  col_steps: Iterable[float] = np.arange(5,10.5, 0.5),
-                 row_offset: bool = False,
-                 col_offset: bool = False,
+                 row_offset: bool | Iterable[bool] = False,
+                 col_offset: bool | Iterable[bool] = False,
                  angles: Iterable[float] = np.arange(0, 1),
                  x_shears: Iterable[float] = np.arange(0, 1),
                  y_shears: Iterable[float] = np.arange(0, 1),
@@ -107,6 +107,12 @@ class GriddedLayoutGenerator:
                  ) -> None:
         """__init__ Initialises the GriddedLayoutGenerator instance.
         """
+        if isinstance(row_offset, bool):
+            row_offset = [row_offset]
+        
+        if isinstance(col_offset, bool):
+            col_offset = [col_offset]
+        
         instructions = OrderedDict(
             {
             "n_rows": n_rows,
@@ -145,7 +151,7 @@ class GriddedLayoutGenerator:
         instructions = []
         
         for key, val in self._grid_instructions.items():
-            if key not in ["n_rows", "n_cols", "row_offset", "col_offset"]:
+            if key not in ["n_rows", "n_cols"]:
                 instructions.append(val)
                 
         for instruction in product(*instructions):
@@ -169,13 +175,13 @@ class GriddedLayoutGenerator:
                 n_cols = self._grid_instructions["n_cols"],
                 row_step = instruction[0],
                 col_step = instruction[1],
-                row_offset = self._grid_instructions["row_offset"],
-                col_offset = self._grid_instructions["col_offset"],
-                angle = instruction[2],
-                x_shear = instruction[3],
-                y_shear = instruction[4],
-                origin = instruction[5],
-                scale = instruction[6]
+                row_offset = instruction[2],
+                col_offset = instruction[3],
+                angle = instruction[4],
+                x_shear = instruction[5],
+                y_shear = instruction[6],
+                origin = instruction[7],
+                scale = instruction[8]
             )
     
     def generate_layouts(self, progress: bool = False, to_file: bool = False, filepath: str = "layouts.h5", chunksize: int = 5000) -> list[Layout] | None:
@@ -307,9 +313,9 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
         An iterable with the non-dimensional row distances to iterate through when creating gridded layouts, by default np.arange(5,10.5, 0.5).
     col_steps : Iterable[float], optional
         An iterable with the non-dimensional column distances to iterate through when creating gridded layouts, by default np.arange(5,10.5, 0.5).
-    row_offset : bool, optional
+    row_offset : bool | Iterable[bool], optional
         Offset every other row by half row_step to create a diamond shaped grid. Cannot be True when col_offset is also True. By default False.
-    col_offset : bool, optional
+    col_offset : bool | Iterable[bool], optional
         Offset every other column by half row_step to create a diamond shaped grid. Cannot be True when row_offset is also True. By default False.
     angles : Iterable[float], optional
         An iterable of angles in degrees to iterate through when creating gridded layouts, by default np.arange(0, 1).
