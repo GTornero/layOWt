@@ -18,7 +18,7 @@ dependencies = [
     "SQLAlchemy==1.4.36",
     "pandas==1.4.2",
     "pyproj==3.3.1",
-    "py-wake==2.3.0",
+    "py-wake==2.4.0",
     "pytest==7.1.2",
     "psycopg2==2.9.3",
     "pyodbc==4.0.34",
