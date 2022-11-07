@@ -8,6 +8,32 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
+## [0.3.0] - [2022-11-07]
+ 
+LayOWt Version 0.3.0
+
+Added angular buffers to the {class}`layowt.layouts.floating_layout.FloatingLayout` class.
+ 
+### Added
+- {class}`layowt.layouts.floating_layout.FloatingLayout`:
+    - {meth}`layowt.layouts.floating_layout.FloatingLayout.generate_mooring_buffers` method to generate angular buffers around mooring lines.
+    - {attr}`layowt.layouts.floating_layout.FloatingLayout.has_mooring_buffers` property to identify if mooring buffers have been generated.
+    - {attr}`layowt.layouts.floating_layout.FloatingLayout.mooring_buffer_overlap` property to indentify if mooring buffers overlap.
+
+
+ 
+### Changed
+- {class}`layowt.layouts.floating_layout.FloatingLayout`:
+    - {meth}`layowt.layouts.floating_layout.FloatingLayout.plot` method now also plots mooring buffers if they have been generated.
+    - {meth}`layowt.layouts.floating_layout.FloatingLayout.to_shapefile` method now also exports mooring buffers to a shapefile if they have been generated.
+- {class}`layowt.layouts.layout_generators.GriddedLayoutGenerator` class:
+    - Layout generators can now take [True, False] as an input for the row_offset and col_offset arguments to generated layouts with and without offests in a single pass.
+
+### Fixed
+
+
+
+=======================================================================
 ## [0.2.2] - [2022-10-28]
  
 LayOWt Version 0.2.2

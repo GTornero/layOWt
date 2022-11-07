@@ -810,7 +810,8 @@ class FloatingLayout(Layout):
     def to_shapefile(self, filepath: str, epsg: int = None) -> None:
         """
         Saves the FloatingLayout turbine positions as Point geometries in a Shapefile.\
-        If the FloatingLayout has moorings, the moorings are saved as MultiLine geometries in a separate Shapefile.
+        If the FloatingLayout has moorings and mooring buffers, the moorings are saved as MultiLine \
+        geometries and the mooring buffers as Polygon in separate Shapefiles.
 
         Parameters
         ----------
