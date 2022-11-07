@@ -9,12 +9,13 @@ import fiona
 import geopandas as gp
 import numpy as np
 import pyproj
-from layowt.grids import Grid
-from layowt.layouts.layout import Layout, _is_epsg
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from shapely.geometry import MultiLineString, MultiPolygon, Polygon, mapping
 from shapely.ops import unary_union
+
+from layowt.grids import Grid
+from layowt.layouts.layout import Layout, _is_epsg
 
 
 class FloatingLayout(Layout):
@@ -105,6 +106,8 @@ class FloatingLayout(Layout):
         Attribute: The polygon(s) geometry which must contain the mooring lines.
     mooring_exclusions: Polygon | MultiPolygon
         Attribute: The polygon(s) geometries which the mooring lines cannot fall into.
+    mooring_buffers: MultiPolygon
+        Attribute: The MultiPolygon geometries of the mooring buffers.
     """
     def __init__(self,
         grid: Grid | None = None,
@@ -124,6 +127,7 @@ class FloatingLayout(Layout):
         self.mooring_radii = None
         self.mooring_area = None
         self.mooring_exclusions = None
+        self.mooring_buffers = None
     
     def _set_platform_bearing(self, platform_bearing: float | None) -> None:
         """
@@ -141,7 +145,7 @@ class FloatingLayout(Layout):
     
     def _set_mooring_offsets(self, mooring_offsets: list[tuple[float, float]] | None) -> None:
         """
-        Private method to calculate the mooring offsets after the rotating the platform by the
+        Private method to calculate the mooring offsets after the rotating the platform by the \
         platform_bearing.
 
         Parameters
@@ -215,7 +219,7 @@ class FloatingLayout(Layout):
     
     def _calculate_mooring_origins(self) -> None:
         """
-        Private method to calculate all mooring fairlead coordinates i nthe global frame of
+        Private method to calculate all mooring fairlead coordinates i nthe global frame of \
         reference for each turbine platform.
         """
         mooring_origins = []
@@ -293,7 +297,7 @@ class FloatingLayout(Layout):
                           mooring_exclusions: list[Polygon | MultiPolygon] | None = None
                           ) -> None:
         """
-        This method is used to generate mooring MultiLineString geometries for the FloatingLayout
+        This method is used to generate mooring MultiLineString geometries for the FloatingLayout \
         instance.
 
         Parameters
@@ -354,7 +358,7 @@ class FloatingLayout(Layout):
     
     def reset_moorings(self) -> "FloatingLayout":
         """
-        This method resets all moorings and any mooring related attributes back to None.
+        This method resets all moorings and any mooring related attributes back to None. \
         Also recovers the turbine positions lost due to any mooring contraints.
 
         Returns
@@ -373,6 +377,7 @@ class FloatingLayout(Layout):
         self.mooring_radii = None
         self.mooring_area = None
         self.mooring_exclusions = None
+        self.mooring_buffers = None
         
         if self.has_geom():
             self.geom = self._raw_geom
@@ -388,6 +393,7 @@ class FloatingLayout(Layout):
                                     drop_na=self.bathymetry_drop_na)
         return self
     
+    @property
     def has_moorings(self) -> bool:
         """
         Returns True if the FloatingLayout has mooring geometries.
@@ -399,6 +405,7 @@ class FloatingLayout(Layout):
         """
         return self.mooring_geom is not None
     
+    @property
     def has_mooring_area(self) -> bool:
         """
         Returns True if the FloatingLayout has mooring areas.
@@ -410,6 +417,7 @@ class FloatingLayout(Layout):
         """
         return self.mooring_area is not None
     
+    @property
     def has_mooring_exclusions(self) -> bool:
         """
         Returns True if the FloatingLayout has mooring exclusions.
@@ -430,7 +438,7 @@ class FloatingLayout(Layout):
         FloatingLayout
             FloatingLayout without any mooring_area constraints.
         """
-        if self.has_mooring_area():
+        if self.has_mooring_area:
             self.mooring_area = None
             if self.has_geom():
                 self.geom = self._raw_geom
@@ -464,7 +472,7 @@ class FloatingLayout(Layout):
         FloatingLayout
             FloatingLayout without any mooring_exclusions constraints.
         """
-        if self.has_mooring_exclusions():
+        if self.has_mooring_exclusions:
             self.mooring_exclusions = None
             if self.has_geom():
                 self.geom = self._raw_geom
@@ -492,7 +500,7 @@ class FloatingLayout(Layout):
     
     def clip_moorings_to_area(self, areas: list[Polygon | MultiPolygon] | None = None, mode: str = "a") -> "FloatingLayout":
         """
-        Applies a mooring_area constraint to the floating Layout. Moorings and associated turbine
+        Applies a mooring_area constraint to the floating Layout. Moorings and associated turbine \
         positions that fall outside the area are removed.
 
         Parameters
@@ -522,7 +530,7 @@ class FloatingLayout(Layout):
         AttributeError
             If no areas are passed and the FloatingLayout does not have an area constraint.
         """
-        if not self.has_moorings():
+        if not self.has_moorings:
             raise AttributeError(f"{self.__class__} has no moorings to clip.")
         
         if mode.lower() not in ["a", "w"]:
@@ -535,9 +543,9 @@ class FloatingLayout(Layout):
                 self.mooring_area = self.area
         else:
             area = unary_union(areas)
-            if self.has_mooring_area() and mode.lower() == 'a':
+            if self.has_mooring_area and mode.lower() == 'a':
                 self.mooring_area = unary_union([self.mooring_area, area])
-            elif self.has_mooring_area() and mode.lower() == 'w':
+            elif self.has_mooring_area and mode.lower() == 'w':
                 self.reset_mooring_area()
                 self.mooring_area = area
             else:
@@ -573,7 +581,7 @@ class FloatingLayout(Layout):
 
     def avoid_mooring_exclusions(self, exclusions: list[Polygon | MultiPolygon] | None = None, mode: str = "a") -> "FloatingLayout":
         """
-        Applies a mooring_exclusions constraint to the floating Layout. Moorings and associated
+        Applies a mooring_exclusions constraint to the floating Layout. Moorings and associated \
         turbine positions that overlap with these exclusions are removed fro mthe layout.
 
         Parameters
@@ -605,7 +613,7 @@ class FloatingLayout(Layout):
         AttributeError
             If no exclusions are passed and the FloatingLayout does not have an exclusion constraint.
         """
-        if not self.has_moorings():
+        if not self.has_moorings:
             raise AttributeError(f"{self.__class__} has no moorings.")
         
         if mode.lower() not in ["a", "w"]:
@@ -618,9 +626,9 @@ class FloatingLayout(Layout):
                 self.mooring_exclusions = self.exclusion
         else:
             exclusion = unary_union(exclusions)
-            if self.has_mooring_exclusions() and mode.lower() == 'a':
+            if self.has_mooring_exclusions and mode.lower() == 'a':
                 self.mooring_exclusions = unary_union([self.mooring_exclusions, exclusion])
-            elif self.has_mooring_exclusions() and mode.lower() == 'w':
+            elif self.has_mooring_exclusions and mode.lower() == 'w':
                 self.reset_mooring_exclusions()
                 self.mooring_exclusions = exclusion
             else:
@@ -664,19 +672,99 @@ class FloatingLayout(Layout):
         bool
             True if any mooring line geometries cross in the x-y plane. False otherwise.
         """
+        if not self.has_moorings:
+            return False
+        
         for i, mooring in enumerate(self.mooring_geom):
             if i == 0:
                 other_moorings = unary_union(self.mooring_geom[1:])
-            elif i == len(self.mooring_geom):
+            elif i == len(self.mooring_geom) - 1:
                 other_moorings = unary_union(self.mooring_geom[:-1])
             else:
                 other_moorings = unary_union(self.mooring_geom[0:i] + self.mooring_geom[i+1:])
     
-            if not mooring.disjoint(other_moorings):
+            if mooring.intersects(other_moorings):
                 return True
         
         return False
     
+    def generate_mooring_buffers(self, width: float = 10, segments: int =5) -> None:
+        """
+        Generates angular buffers around the layout mooring lines.
+
+        Parameters
+        ----------
+        width : float, optional
+            Angular width of the buffer around the mooring lines in degrees. Creates a buffer of
+            half the width to either side of the mooring lines. By default 10.
+        segments : int, optional
+            Number of segments to use to approximate the circular arc, by default 5.
+
+        Raises
+        ------
+        AttributeError
+            If the layout has no mooring geometries to generate buffers around.
+        """
+        if not self.has_moorings:
+            raise AttributeError("Layout does not have any moorings.")
+
+        buffers = []
+
+        for xy_wtg, r in zip(self.coords, self.mooring_radii):
+            for bearing, offset in zip(self.mooring_bearings, np.array(self.mooring_offsets)):
+                start_angle = bearing - width / 2
+                end_angle = bearing + width / 2
+                
+                xy = np.empty((segments + 2, 2))
+                xy[0] = xy_wtg + offset
+                theta = np.radians(np.linspace(start_angle, end_angle, segments + 1))
+                xy[1:] = xy_wtg + offset + r * np.stack([np.sin(theta), np.cos(theta)], axis=-1)
+                buffers.append(Polygon(xy))
+        
+        self.mooring_buffers = MultiPolygon(buffers)
+    
+    @property
+    def has_mooring_buffers(self) -> bool:
+        """
+        Returns True if there are any generate mooring buffers.
+
+        Returns
+        -------
+        bool
+            True if mooring buffers have been generated. False otherwise.
+        """
+        return self.mooring_buffers is not None
+
+    @property
+    def mooring_buffer_overlap(self) -> bool:
+        """
+        Returns True if the mooring_buffers overlap.
+
+        Returns
+        -------
+        bool
+            True if mooring_buffers overlap, False otherwise.
+        """
+        if not self.has_mooring_buffers:
+            return False
+        
+        n_wtg = self.n_wtg
+        n_moorings = self.n_moorings
+        
+        for i in range(n_wtg):
+            buffer = self.mooring_buffers.geoms[i*n_moorings:i*n_moorings + n_moorings]
+            if i == 0:
+                other_buffers = unary_union(self.mooring_buffers.geoms[i*n_moorings + n_moorings:])
+            elif i == n_wtg - 1:
+                other_buffers = unary_union(self.mooring_buffers.geoms[:-n_moorings])
+            else:
+                other_buffers = unary_union([self.mooring_buffers.geoms[0:i*n_moorings], self.mooring_buffers.geoms[i*n_moorings + n_moorings:]])
+    
+            if buffer.intersects(other_buffers):
+                return True
+        
+        return False
+
     def plot(self, ax: Axes | None = None, figsize: tuple = (8, 6), show_bathy: bool = False) -> tuple[Figure, Axes]:
         """
         Plots the FloatingLayout turbine and mooring geometries, as well as areas and exclusions.
@@ -708,11 +796,14 @@ class FloatingLayout(Layout):
         if self.mooring_geom is not None:
             gp.GeoSeries(self.mooring_geom).plot(ax=ax, color='black')
         
-        if self.has_mooring_area():
+        if self.has_mooring_area:
             gp.GeoSeries(self.mooring_area).plot(ax=ax, facecolor='green', alpha=0.2)
         
-        if self.has_mooring_exclusions():
+        if self.has_mooring_exclusions:
              gp.GeoSeries(self.mooring_exclusions).plot(ax=ax, facecolor='red', alpha=0.2)
+        
+        if self.has_mooring_buffers:
+            gp.GeoSeries(self.mooring_buffers).plot(ax=ax, facecolor='grey', edgecolor='black', hatch="//", alpha=0.4)
         
         return fig, ax
     
@@ -744,14 +835,34 @@ class FloatingLayout(Layout):
         elif _is_epsg(epsg):
             crs = pyproj.CRS.from_epsg(epsg).to_dict()
         
-        if self.has_moorings():
+        if self.has_moorings:
             # TODO: Create a more detailed attribute schema (wakes, water depth, etc.).
             schema = {"geometry": "MultiLineString", "properties": {"id": "int", "radius": "float"}}
 
             driver = "ESRI Shapefile"
+            
+            if '.' in filepath:
+                mooring_path = "_moorings.".join(filepath.split('.'))
+            else:
+                mooring_path = filepath + "_moorings"
 
             with fiona.open(
-                "moorings_"+filepath, "w", crs=crs, driver=driver, schema=schema
+                mooring_path, "w", crs=crs, driver=driver, schema=schema
             ) as new_file:
                 for idx, geom in enumerate(self.mooring_geom, start=1):  # type: ignore
                     new_file.write({"geometry": mapping(geom), "properties": {"id": idx, "radius": float(self.mooring_radii[idx - 1])}})
+            
+            if self.has_mooring_buffers:
+                schema = {"geometry": "Polygon", "properties": {"id": "int"}}
+                driver = "ESRI Shapefile"
+                
+                if '.' in filepath:
+                    cone_path = "_mooring_buffers.".join(filepath.split('.'))
+                else:
+                    cone_path = filepath + "_mooring_buffers"
+                
+                with fiona.open(
+                    cone_path, "w", crs=crs, driver=driver, schema=schema
+                ) as new_file:
+                    for idx, geom in enumerate(self.mooring_buffers.geoms, start=1):  # type: ignore
+                        new_file.write({"geometry": mapping(geom), "properties": {"id": idx}})
