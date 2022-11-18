@@ -7,10 +7,12 @@ from typing import Callable, Iterable
 
 import numpy as np
 import rasterio
+from shapely.geometry import MultiPolygon, Polygon
+
+from layowt.errors import EmptyLayoutError
 from layowt.grids import Grid
 from layowt.layouts import FloatingLayout, Layout
 from layowt.layouts.utils import layouts_to_hdf5
-from shapely.geometry import MultiPolygon, Polygon
 
 
 class GriddedLayoutGenerator:
@@ -260,6 +262,9 @@ class GriddedLayoutGenerator:
                                             limits=self.bathymetry_limits,
                                             drop_na=self.bathymetry_drop_na
                                             )
+                    
+                    if self.geom.is_empty:
+                        continue
                         
                     if self.n_wtg is None:
                         layouts.append(layout)
@@ -278,6 +283,9 @@ class GriddedLayoutGenerator:
         else:
             for counter, grid in enumerate(grid_gen, start=1):
                 layout = Layout(grid, areas=self.areas, exclusions=self.exclusions, epsg=self.epsg)
+                
+                if self.geom.is_empty:
+                    continue
                     
                 if self.n_wtg is None:
                     layouts.append(layout)
@@ -559,16 +567,22 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
                                             )
                     
                     if moorings:
-                        layout.generate_moorings(n_moorings=self.n_moorings,
-                                                 radius=self.mooring_radius_func,
-                                                 platform_bearing=self.platform_bearing,
-                                                 mooring_bearings=self.mooring_bearings,
-                                                 mooring_offsets=self.mooring_offsets,
-                                                 contain=self.contain,
-                                                 mooring_areas=self.mooring_areas,
-                                                 avoid_exclusions=self.avoid_exclusions,
-                                                 mooring_exclusions=self.mooring_exclusions
-                                                 )
+                        try:
+                            layout.generate_moorings(n_moorings=self.n_moorings,
+                                                    radius=self.mooring_radius_func,
+                                                    platform_bearing=self.platform_bearing,
+                                                    mooring_bearings=self.mooring_bearings,
+                                                    mooring_offsets=self.mooring_offsets,
+                                                    contain=self.contain,
+                                                    mooring_areas=self.mooring_areas,
+                                                    avoid_exclusions=self.avoid_exclusions,
+                                                    mooring_exclusions=self.mooring_exclusions
+                                                    )
+                        except EmptyLayoutError:
+                            continue
+                    
+                    if self.geom.is_empty:
+                        continue
                         
                     if self.n_wtg is None:
                         layouts.append(layout)
@@ -589,16 +603,22 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
                 layout = FloatingLayout(grid, areas=self.areas, exclusions=self.exclusions, epsg=self.epsg)
                 
                 if moorings:
-                    layout.generate_moorings(n_moorings=self.n_moorings,
-                                             radius=self.mooring_radius_func,
-                                             platform_bearing=self.platform_bearing,
-                                             mooring_bearings=self.mooring_bearings,
-                                             mooring_offsets=self.mooring_offsets,
-                                             contain=self.contain,
-                                             mooring_areas=self.mooring_areas,
-                                             avoid_exclusions=self.avoid_exclusions,
-                                             mooring_exclusions=self.mooring_exclusions
-                                             )
+                    try:
+                        layout.generate_moorings(n_moorings=self.n_moorings,
+                                                radius=self.mooring_radius_func,
+                                                platform_bearing=self.platform_bearing,
+                                                mooring_bearings=self.mooring_bearings,
+                                                mooring_offsets=self.mooring_offsets,
+                                                contain=self.contain,
+                                                mooring_areas=self.mooring_areas,
+                                                avoid_exclusions=self.avoid_exclusions,
+                                                mooring_exclusions=self.mooring_exclusions
+                                                )
+                    except EmptyLayoutError:
+                        continue
+                
+                if layout.geom.is_empty:
+                    continue
                     
                 if self.n_wtg is None:
                     layouts.append(layout)
