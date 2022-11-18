@@ -10,15 +10,16 @@ import numpy as np
 import pandas as pd
 import pyproj
 import rasterio
-from layowt.grids.grid import Grid
-from layowt.layouts.floating_layout import FloatingLayout
-from layowt.layouts.layout import Layout
 from osgeo import gdal
 from rasterio.crs import CRS
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from shapely.geometry import MultiPoint, shape
 from shapely.ops import transform
 from sqlalchemy import create_engine
+
+from layowt.grids.grid import Grid
+from layowt.layouts.floating_layout import FloatingLayout
+from layowt.layouts.layout import Layout
 
 
 def geoms_from_shapefile(filepath: str, target_epsg: int | None = None) -> list:
@@ -523,6 +524,8 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
             
             if out.lower() == "info":
                 info_df = pd.DataFrame(layout_info)
+                info_df["row_offset"] = info_df["row_offset"].astype(bool)
+                info_df["col_offset"] = info_df["col_offset"].astype(bool)
                 return info_df
             else:
                 if start_id == 0:
@@ -541,6 +544,8 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
                     return coords_df
                 else:
                     info_df = pd.DataFrame(layout_info)
+                    info_df["row_offset"] = info_df["row_offset"].astype(bool)
+                    info_df["col_offset"] = info_df["col_offset"].astype(bool)
                     return (coords_df, info_df)
         else:
             if out.lower() in ["both", "info"]:
@@ -551,6 +556,8 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
                     layout_info = np.squeeze(f["info"][indexes])
                     
                 info_df = pd.DataFrame(layout_info)
+                info_df["row_offset"] = info_df["row_offset"].astype(bool)
+                info_df["col_offset"] = info_df["col_offset"].astype(bool)
                 
                 if out.lower() == "info":
                     return info_df
@@ -575,5 +582,7 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
                     layout_info = np.squeeze(f["info"][indexes])
                     
                 info_df = pd.DataFrame(layout_info)
+                info_df["row_offset"] = info_df["row_offset"].astype(bool)
+                info_df["col_offset"] = info_df["col_offset"].astype(bool)
                 
                 return (coords_df, info_df)
