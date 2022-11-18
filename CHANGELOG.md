@@ -8,6 +8,34 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
+## [0.3.1] - [2022-11-18]
+ 
+LayOWt Version 0.3.1
+
+Added the errors module for LayOWt specific Exceptions.
+ 
+### Added
+- {mod}`layowt.errors`: Errors module with LayOWt specific Exception classes.
+    - {class}`layowt.errors.errors.EmptyLayoutError` for raising errors when the layout geometry is empty.
+- {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
+    - Can now filter generated layouts but mooring line crossings and mooring buffer overlaps using the allow_mooring_crossings and allow_mooring_buffer_overlap arguments.
+
+
+ 
+### Changed
+- {func}`layowt.layouts.utils.hdf5_to_dataframe` now exports the row_offset and col_offset columns of the info dataframe as boolean.
+
+
+
+### Fixed
+- {class}`layowt.layouts.layout_generators.GriddedLayoutGenerator` class:
+    - {meth}`layowt.layouts.layout_generators.GriddedLayoutGenerator.generate_layouts` method no longer crashes when checking the number of turbines of an empty layout.
+- {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
+    - {meth}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator.generate_layouts` method no longer crashes when checking the number of turbines of an empty layout.
+
+
+
+=======================================================================
 ## [0.3.0] - [2022-11-07]
  
 LayOWt Version 0.3.0
