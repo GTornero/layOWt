@@ -384,11 +384,20 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
     mooring_exclusions : list[Polygon  |  MultiPolygon] | None, optional
         Polygon geometries to use as mooring exclusion zones, used in conjunction with the
         avoid_exclusions argument, by default None. Has no effect if avoid_exclusions is set to False.
+    allow_mooring_crossings : bool, optional
+        If True, allows FloatingLayouts to have crossing mooring lines. If False, FloatingLayouts
+        with crossing mooring lines are discarded. By default True.
+    allow_mooring_buffer_overlap : bool, optional
+        If True, allows FloatingLayouts to have overlapping mooring buffers. If False, FloatingLayouts
+        with overlapping mooring buffers are discarded. By default True.
+    mooring_buffer_width : float, optional
+        Angular width of the buffer around the mooring lines in degrees. Creates a buffer of
+        half the width to either side of the mooring lines. By default 10.
     
     Attributes
     ----------
     _grid_instructions : dict
-        Attributes: Ordered dictionary of the parameters used to create all grids.
+        Attribute: Ordered dictionary of the parameters used to create all grids.
     n_wtg : tuple(int, int)
         Attribute: The (minimum, maximum) target number of layout positions.
     epsg : int
@@ -422,6 +431,13 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
         Attribute: The polygon(s) geometry which must contain the mooring lines.
     mooring_exclusions: Polygon | MultiPolygon
         Attribute: The polygon(s) geometries which the mooring lines cannot fall into.
+    allow_mooring_crossings: bool
+        Attribute: If mooring crossings are allowed.
+    allow_mooring_buffer_crossings: bool
+        Attribute: If mooring buffer overlaps are allowed.
+    mooring_buffer_width: float
+        Attribute: Angular width of mooring buffers.
+    
     
     See Also
     --------
@@ -434,7 +450,7 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
     --------
     Under heavy development.
     
-    Current performance is slow if all constraints to turbines and moorings are required, and if bathymetry constraints and 
+    Current performance is slow if all constraints to turbines and moorings are required, and if bathymetry constraints and
     mooring radius functions are used.
     
     Currently, it is recommended to not apply mooring constraints within this generator and to apply them to a filtered subset of layouts
@@ -473,7 +489,10 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
                  contain: bool = False,
                  mooring_areas: list[Polygon | MultiPolygon] | None = None,
                  avoid_exclusions: bool = False,
-                 mooring_exclusions: list[Polygon | MultiPolygon] | None = None
+                 mooring_exclusions: list[Polygon | MultiPolygon] | None = None,
+                 allow_mooring_crossings: bool = True,
+                 allow_mooring_buffer_overlap: bool = True,
+                 mooring_buffer_width: float = 10
                  ) -> None:
         super().__init__(n_rows=n_rows,
                          n_cols=n_cols,
@@ -505,6 +524,9 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
         self.mooring_areas = mooring_areas
         self.avoid_exclusions = avoid_exclusions
         self.mooring_exclusions = mooring_exclusions
+        self.allow_mooring_crossings = allow_mooring_crossings
+        self.allow_mooring_buffer_overlap = allow_mooring_buffer_overlap
+        self.mooring_buffer_width = mooring_buffer_width
     
     def generate_layouts(self, progress: bool = False, to_file: bool = False, filepath: str = "layouts.h5", chunksize: int = 5000) -> list[FloatingLayout] | None:
         """
@@ -580,6 +602,14 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
                                                     )
                         except EmptyLayoutError:
                             continue
+                        
+                        if (not self.allow_mooring_crossings) and (layout.mooring_crossings):
+                            continue
+                        
+                        if not self.allow_mooring_buffer_overlap:
+                            layout.generate_mooring_buffers(width=self.mooring_buffer_width)
+                            if layout.mooring_buffer_overlap:
+                                continue
                     
                     if self.geom.is_empty:
                         continue
@@ -616,6 +646,14 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
                                                 )
                     except EmptyLayoutError:
                         continue
+                    
+                    if (not self.allow_mooring_crossings) and (layout.mooring_crossings):
+                            continue
+                        
+                    if not self.allow_mooring_buffer_overlap:
+                        layout.generate_mooring_buffers(width=self.mooring_buffer_width)
+                        if layout.mooring_buffer_overlap:
+                            continue
                 
                 if layout.geom.is_empty:
                     continue
