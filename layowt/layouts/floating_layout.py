@@ -14,6 +14,7 @@ from matplotlib.figure import Figure
 from shapely.geometry import MultiLineString, MultiPolygon, Polygon, mapping
 from shapely.ops import unary_union
 
+from layowt.errors import EmptyLayoutError
 from layowt.grids import Grid
 from layowt.layouts.layout import Layout, _is_epsg
 
@@ -337,11 +338,15 @@ class FloatingLayout(Layout):
         Raises
         ------
         AttributeError
-            If the FloatingLayout instance has no turbine geometries from which to generate
+            If the FloatingLayout instance has no turbines geometry from which to generate
             moorings from.
+        EmptyLayoutError
+            If the FloatingLayout isntance has a turbines geometry but is empty.
         """
         if not self.has_geom():
             raise AttributeError("Layout has no point geometry to generate moorings from.")
+        if self.geom.is_empty:
+            raise EmptyLayoutError("Layout point geometry is empty.")
 
         self.n_moorings = n_moorings
         self.mooring_radius_func = radius
