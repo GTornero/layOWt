@@ -4,10 +4,12 @@ from collections.abc import Iterable
 
 import numpy as np
 import rasterio
-from layowt.wtg.power_curve import PowerCurve
 from rasterio.errors import CRSError, DatasetIOShapeError
 from scipy.integrate import simpson
 from scipy.special import gamma
+from scipy.stats import linregress
+
+from layowt.wtg.power_curve import PowerCurve
 
 
 def _weibull_dist(wind_speed: float | Iterable[float], weibull_a: float, weibull_k: float) -> float | Iterable[float]:
@@ -203,3 +205,51 @@ def weibull_aep_map(pc: PowerCurve, weibull_a: str, weibull_k: str, output_path:
                 transform=src_a.transform
                 ) as output:
                     output.write(result, 1)
+
+def weibull_ws_to_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, ws_range: float = 5, ws_step: float = 0.1) -> float:
+    """
+    Function to calculate the approximate linear relationship between % changes in wind speed and \
+    % changes in annual energy production for a given PowerCurve and mean 2-parameter Weibull wind \
+    distribution.
+    
+    Annual energy production is calculated for a range of 2-parameter Weibull distributions with
+    small % variations to their scale parameter A between **-ws_range** and **ws_range** in steps of
+    **ws_step**. Annual energy production is calculated using the :func:`weibull_aep` function.
+    
+    A linear relationship is fit to the results of % change in wind speed vs % change in AEP using
+    Scipy's implementation of linear regression using the :func:`scipy.stats.linregress` function.
+    
+    This method is applicable for small ranges of wind speed variations. For large deviations, the
+    real effect on annual energy production deviates from a linear relationship.
+
+    Parameters
+    ----------
+    pc : PowerCurve
+        PowerCurve used to calculate AEP
+    weibull_a : float
+        The 2-parameter Weibull scale parameter in m/s.
+    weibull_k : float
+        The 2-parameter Weibull shape parameter.
+    ws_range : float, optional
+        Range of wind speed % deviation to consider in the analysis, by default 5.
+    ws_step : float, optional
+        wind speed % step increase within the range of % wind speed deviations, by default 0.1.
+
+    Returns
+    -------
+    float
+        The slope of the approximate linear relationship between % changes in wind speed and % changes in AEP.
+    """
+    ws_deltas = 1 + (np.arange(-ws_range, ws_range + ws_step, ws_step) / 100)
+    aeps = np.empty(ws_deltas.shape)
+    
+    baseline = weibull_aep(pc=pc, weibull_a=weibull_a, weibull_k=weibull_k)
+    
+    for i, delta in enumerate(ws_deltas):
+        aeps[i] = weibull_aep(pc=pc, weibull_a=weibull_a * delta, weibull_k=weibull_k)
+    
+    aep_deltas = aeps / baseline - 1
+    
+    r = linregress(ws_deltas, aep_deltas)
+    
+    return r.slope
