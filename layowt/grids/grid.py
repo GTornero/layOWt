@@ -5,8 +5,10 @@ to generate layouts.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from layowt.grids.utils import create_coords
+from scipy.spatial.distance import cdist
 from shapely.geometry import MultiPoint, Point
+
+from layowt.grids.utils import create_coords
 
 
 class Grid:
@@ -208,6 +210,20 @@ class Grid:
             1-D array of the y coordinates of the points in the grid.
         """
         return self.coords[:, 1]
+    
+    @property
+    def shortest_distance(self) -> float:
+        """
+        This property returns the shortest euclidean distance between grid points in the grid \
+        projection units.
+
+        Returns
+        -------
+        float
+            Shortest euclidean distance between tgrid points in the grid projection units.
+        """
+        distances = cdist(self.coords, self.coords)
+        return distances[distances > 0].min()
 
     def plot(
         self, ax: plt.Axes | None = None, figsize: tuple = (8, 6)
