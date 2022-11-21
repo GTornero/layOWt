@@ -14,6 +14,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from rasterio.errors import CRSError
 from rasterio.plot import show
+from scipy.spatial.distance import cdist
 from shapely.geometry import (MultiPoint, MultiPolygon, Point, Polygon,
                               mapping, shape)
 from shapely.ops import transform, unary_union
@@ -802,6 +803,19 @@ class Layout:
             1-D array of the y coordinates of the points in the Layout.
         """
         return self.coords[:, 1]
+    
+    @property
+    def shortest_distance(self) -> float:
+        """
+        This property returns the shortest euclidiean distance between turbines in the layout projection units.
+
+        Returns
+        -------
+        float
+            Shortest euclidean distance between turbines in the layout projection units.
+        """
+        distances = cdist(self.coords, self.coords)
+        return distances[distances > 0].min()
 
     @property
     def n_wtg(self) -> int:
