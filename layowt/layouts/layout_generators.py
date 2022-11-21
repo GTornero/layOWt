@@ -11,7 +11,8 @@ from shapely.geometry import MultiPolygon, Polygon
 
 from layowt.errors import EmptyLayoutError
 from layowt.grids import Grid
-from layowt.layouts import FloatingLayout, Layout
+from layowt.layouts.floating_layout import FloatingLayout
+from layowt.layouts.layout import Layout
 from layowt.layouts.utils import layouts_to_hdf5
 
 
