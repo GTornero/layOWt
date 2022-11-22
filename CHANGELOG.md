@@ -8,17 +8,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
-## [0.3.1] - [2022-11-18]
+## [0.4.0] - [2022-11-22]
  
-LayOWt Version 0.3.1
+LayOWt Version 0.4.0
 
-Added the errors module for LayOWt specific Exceptions.
+Added the errors module for LayOWt specific Exceptions and minor additions to existing modules.
  
 ### Added
 - {mod}`layowt.errors`: Errors module with LayOWt specific Exception classes.
     - {class}`layowt.errors.errors.EmptyLayoutError` for raising errors when the layout geometry is empty.
 - {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
     - Can now filter generated layouts but mooring line crossings and mooring buffer overlaps using the allow_mooring_crossings and allow_mooring_buffer_overlap arguments.
+- {func}`layowt.aep.aep.weibull_ws_to_aep` function to calculate the approximate linear relationship between wind speed changes and AEP changes.
+- {class}`layowt.layouts.layout.Layout` class:
+    - {attr}`layowt.layouts.layout.Layout.shortest_distance` property added that returns the shortest euclidean distance between turbines in the layout projection units.
+- {class}`layowt.grids.grid.Grid` class:
+    - {attr}`layowt.grids.grid.Grid.shortest_distance` property added that returns the shortest euclidean distance between grid points in the grid projection units.
 
 
  
