@@ -808,11 +808,51 @@ class Layout:
     def shortest_distance(self) -> float:
         """
         This property returns the shortest euclidiean distance between turbines in the layout projection units.
-
+        
+        If the Layout instance has a grid, consider calling this property from the Grid directly.
+        
         Returns
         -------
         float
             Shortest euclidean distance between turbines in the layout projection units.
+        
+        Tip
+        ---
+        It is much faster to use the same property of the :class:`layowt.grids.grid.Grid` class
+        than to call this directly from the Layout instance.
+        
+        Examples
+        --------
+        Calling the shortest_distance property from a Layout.
+        
+        >>> from layowt.grids import Grid
+        >>> from layowt.layouts import Layout
+        >>> import time
+        >>> grid = Grid(col_step=5, row_step=10, scale=250)
+        >>> layout = Layout(grid)
+        >>> layout.shortest_distance
+        1250.0
+        
+        Calling the shortest_distance property from the Layout's grid.
+        
+        >>> layout.grid.shortest_distance
+        1250.0
+        
+        Checking the computation time of calling the shortest_distance property on a Layout
+        
+        >>> start = time.perf_counter()
+        >>> layout.shortest_distance
+        >>> end = time.perf_counter()
+        >>> end - start
+        0.01885549999860814
+        
+        Checking the computation time of calling the shortest_distance property on a Grid
+        
+        >>> start = time.perf_counter()
+        >>> layout.grid.shortest_distance
+        >>> end = time.perf_counter()
+        >>> end - start
+        0.0006460000004153699
         """
         distances = cdist(self.coords, self.coords)
         return distances[distances > 0].min()
