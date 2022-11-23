@@ -8,6 +8,7 @@ Can also be used to export power curves into common formats such as WAsP .wtg fi
 import os
 import re
 import urllib
+import warnings
 import xml.etree.ElementTree as ET
 from datetime import date
 from typing import Iterable, Optional
@@ -16,10 +17,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-from layowt import __version__
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from scipy.interpolate import PchipInterpolator
+
+from layowt import __version__
 
 
 class PowerCurve:
@@ -115,6 +117,20 @@ class PowerCurve:
             raise ValueError(f"Hub Height cannot be less than half the rotor diameter. {hub_height=} passed for {self.attributes['rotor_diameter']=}.")
         self.attributes["hub_height"] = hub_height
     
+    def set_rotor_diameter(self, rotor_diameter: float) -> None:
+        """
+        Set the rotor diameter of a power curve. Checks that the rotor diameter and the hub height make sense together.
+
+        Parameters
+        ----------
+        rotor_diameter : float
+            Rotor diameter size of the PowerCurve.
+        """
+        self.attributes["rotor_diameter"] = rotor_diameter
+        
+        if self.attributes["hub_height"] is not None and self.attributes["hub_height"] < rotor_diameter / 2:
+            warnings.warn(f"Hub height was less than half the passed rotor diameter. Rotor diameter set to {rotor_diameter} and hub height set to None.", stacklevel=2)
+            self.attributes["hub_height"] = None
     
     @staticmethod
     def database_engine(username: Optional[str]=None) -> sa.engine.Engine:
@@ -268,13 +284,18 @@ class PowerCurve:
 
         Raises
         ------
-        ValueError
+        AttributeError
             hub_height attribute of the :class:`PowerCurve` instance is not set. This is required
+            by the .wtg file format.
+        AttributeError
+            rotor_diameter attribute of the :class:`PowerCurve` instance is not set. This is required
             by the .wtg file format.
         """
         
         if self.attributes["hub_height"] is None:
-            raise ValueError("Must set hub height before creating .wtg file.")
+            raise AttributeError("Must set hub height before creating .wtg file.")
+        if self.attributes["rotor_diameter"] is None:
+            raise AttributeError("Must set rotor diameter before creating .wtg file.")
         
         data = self.data[self.data["power"] > 0].copy()
         data["power"] = data["power"] * 1000    # converting from kW to W for WAsP format.
@@ -283,8 +304,8 @@ class PowerCurve:
         wtg = ET.Element('WindTurbineGenerator')
         wtg.set('FormatVersion','1.02')
         wtg.set('LowestCompatibleFormatVersion','1.01')
-        wtg.set('Description', self.attributes["curve_id"])
-        wtg.set('ManufacturerName', self.attributes["manufacturer"])
+        wtg.set('Description', str(self.attributes["curve_id"]))
+        wtg.set('ManufacturerName', str(self.attributes["manufacturer"]))
         wtg.set('ReferenceURI','')
         wtg.set('RotorDiameter', str(self.attributes["rotor_diameter"]))
         wtg.set('ControlSystem','Pitch')
@@ -324,7 +345,10 @@ class PowerCurve:
         start_stop.set('HighSpeedCutIn', str(self.attributes["cut_out"]))
 
         comment_2 = ET.SubElement(performance_table, 'Comments')
-        comment_2.text = f'Power curve from CORP_WTG.power_curves.{self.attributes["curve_type"]}_power_curves'
+        if self.attributes["curve_type"] in ["commercial", "internal"]:
+            comment_2.text = f'Power curve from CORP_WTG.power_curves.{self.attributes["curve_type"]}_power_curves'
+        else:
+            comment_2.text = 'None'
         
         data_table = ET.SubElement(performance_table, 'DataTable')
         for ws, power, ct in zip(data.index, data["power"], data["ct"]):
