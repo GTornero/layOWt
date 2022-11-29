@@ -868,6 +868,8 @@ class Layout:
         """
         if self.geom.is_empty:
             return 0
+        elif isinstance(self.geom, Point):
+            return 1
         else:
             return len(self.geom.geoms)  # type: ignore
 

@@ -37,6 +37,10 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
     - {meth}`layowt.layouts.layout_generators.GriddedLayoutGenerator.generate_layouts` method no longer crashes when checking the number of turbines of an empty layout.
 - {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
     - {meth}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator.generate_layouts` method no longer crashes when checking the number of turbines of an empty layout.
+- {class}`layowt.wtg.power_curve.PowerCurve` class:
+    - {meth}`layowt.wtg.power_curve.PowerCurve.to_wtg()` method bugfix. No longer crashes when exporting to .wtg format with missing attributes.
+- {class}`layowt.layouts.layout.Layout` class:
+    - {attr}`layowt.layouts.layout.Layout.n_wtg` no longer raises an AttributeError when the Layout geometry is a single Point geometry.
 
 
 
