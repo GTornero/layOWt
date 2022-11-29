@@ -206,7 +206,7 @@ def weibull_aep_map(pc: PowerCurve, weibull_a: str, weibull_k: str, output_path:
                 ) as output:
                     output.write(result, 1)
 
-def weibull_ws_to_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, ws_range: float = 5, ws_step: float = 0.1) -> float:
+def weibull_ws_to_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, ws_range: float = 5, ws_step: float = 0.1, how: str | None = None) -> float:
     """
     Function to calculate the approximate linear relationship between % changes in wind speed and \
     % changes in annual energy production for a given PowerCurve and mean 2-parameter Weibull wind \
@@ -234,13 +234,33 @@ def weibull_ws_to_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, ws_ran
         Range of wind speed % deviation to consider in the analysis, by default 5.
     ws_step : float, optional
         wind speed % step increase within the range of % wind speed deviations, by default 0.1.
+    how : str | None
+        Determines the range of wind speed % deviations is calculated. If None or 'negative' is
+        passed, only negative wind speed deviations are used in the anlysis, from -ws_range to 0.
+        If 'positive', from 0 to +ws_range. If 'both' then the double-sided range is used, from
+        -ws_range to +ws_range. By default None.
 
     Returns
     -------
     float
         The slope of the approximate linear relationship between % changes in wind speed and % changes in AEP.
+    
+    Raises
+    ------
+    ValueError
+        If how not one of 'negative', 'positive', or 'both'.
     """
-    ws_deltas = 1 + (np.arange(-ws_range, ws_range + ws_step, ws_step) / 100)
+    if how is not None:
+        if how.lower() not in ['negative', 'positive', 'both']:
+            raise ValueError(f"Invalid value passed for {how=}. Must be one of 'negative', 'positive', or 'both'.")
+    
+    if (how is None) or (how.lower() == 'negative'):
+        ws_deltas = 1 + (np.arange(-ws_range, ws_step, ws_step) / 100)
+    elif how.lower() == "both":
+        ws_deltas = 1 + (np.arange(-ws_range, ws_range + ws_step, ws_step) / 100)
+    elif how.lower() == 'positive':
+        ws_deltas = 1 + (np.arange(0, ws_range + ws_step, ws_step) / 100)
+    
     aeps = np.empty(ws_deltas.shape)
     
     baseline = weibull_aep(pc=pc, weibull_a=weibull_a, weibull_k=weibull_k)
