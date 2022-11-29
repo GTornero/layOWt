@@ -264,7 +264,7 @@ class GriddedLayoutGenerator:
                                             drop_na=self.bathymetry_drop_na
                                             )
                     
-                    if self.geom.is_empty:
+                    if layout.geom.is_empty:
                         continue
                         
                     if self.n_wtg is None:
@@ -285,7 +285,7 @@ class GriddedLayoutGenerator:
             for counter, grid in enumerate(grid_gen, start=1):
                 layout = Layout(grid, areas=self.areas, exclusions=self.exclusions, epsg=self.epsg)
                 
-                if self.geom.is_empty:
+                if layout.geom.is_empty:
                     continue
                     
                 if self.n_wtg is None:
@@ -612,7 +612,7 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
                             if layout.mooring_buffer_overlap:
                                 continue
                     
-                    if self.geom.is_empty:
+                    if layout.geom.is_empty:
                         continue
                         
                     if self.n_wtg is None:
