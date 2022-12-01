@@ -2,6 +2,7 @@
 to define project scenario geometries."""
 
 import copy
+import urllib.parse
 
 import fiona
 import geopandas as gp
@@ -279,6 +280,8 @@ class Layout:
             If target_epsg is not a valid EPSG code.
         """
         # TODO: Should change the geopandas method GeoDataFrame.from_postgis to geopandas.read_postgis
+        password = urllib.parse.quote_plus(password)    # to clean special characters in the password.
+        
         db_string = f"postgresql://{username}:{password}@{host}/{db_name}"
         engine = create_engine(db_string)
         data = gp.GeoDataFrame.from_postgis(

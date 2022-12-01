@@ -1,6 +1,6 @@
 """ This module contains utility functions for the Layout class.
 """
-
+import urllib.parse
 from typing import Iterable
 
 import fiona
@@ -95,6 +95,8 @@ def geoms_from_postgis(
         list of shapely geometries contained in the PostGIS table.
     """
     # TODO: Should change the geopandas method from_postgis to read_postgis
+    password = urllib.parse.quote_plus(password)    # to clean special characters in the password.
+    
     db_string = f"postgresql://{username}:{password}@{host}/{db_name}"
     engine = create_engine(db_string)
     data = gp.GeoDataFrame.from_postgis(
