@@ -41,6 +41,8 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
     - {meth}`layowt.wtg.power_curve.PowerCurve.to_wtg()` method bugfix. No longer crashes when exporting to .wtg format with missing attributes.
 - {class}`layowt.layouts.layout.Layout` class:
     - {attr}`layowt.layouts.layout.Layout.n_wtg` no longer raises an AttributeError when the Layout geometry is a single Point geometry.
+    - {meth}`layowt.layouts.layout.Layout.from_postgis` method now correctly parses special characters such as @ and / in the user's password.
+- {func}`layowt.layouts.utils.geoms_from_postgis` function now correctly parses special characters such as @ and / in the user's password.
 
 
 
