@@ -20,6 +20,7 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
 - {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
     - Can now filter generated layouts but mooring line crossings and mooring buffer overlaps using the allow_mooring_crossings and allow_mooring_buffer_overlap arguments.
 - {func}`layowt.aep.aep.weibull_ws_to_aep` function to calculate the approximate linear relationship between wind speed changes and AEP changes.
+- {func}`layowt.aep.aep.weibull_mean` function to calculate the mean value of a 2-parameter Weibull distribution.
 - {class}`layowt.layouts.layout.Layout` class:
     - {attr}`layowt.layouts.layout.Layout.shortest_distance` property added that returns the shortest euclidean distance between turbines in the layout projection units.
 - {class}`layowt.grids.grid.Grid` class:
