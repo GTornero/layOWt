@@ -20,7 +20,10 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
 - {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
     - Can now filter generated layouts but mooring line crossings and mooring buffer overlaps using the allow_mooring_crossings and allow_mooring_buffer_overlap arguments.
 - {func}`layowt.aep.aep.weibull_ws_to_aep` function to calculate the approximate linear relationship between wind speed changes and AEP changes.
-- {func}`layowt.aep.aep.weibull_mean` function to calculate the mean value of a 2-parameter Weibull distribution.
+- {mod}`layowt.stats`: Statistics module:
+    - {func}`layowt.stats.stats.weibull_mean` Function to calculate the mean value of a 2-parameter Weibull distribution.
+    - {func}`layowt.stats.circ_stats.circ_mean` Function to compute the mean value of direction data.
+    - {func}`layowt.stats.circ_stats.circ_corr` Function to compute the circular correlation coefficient between two arrays of direction data.
 - {class}`layowt.layouts.layout.Layout` class:
     - {attr}`layowt.layouts.layout.Layout.shortest_distance` property added that returns the shortest euclidean distance between turbines in the layout projection units.
 - {class}`layowt.grids.grid.Grid` class:
@@ -29,6 +32,7 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
 
  
 ### Changed
+- Can now import the `layowt` package and access all of its subpackage namespaces directly.
 - {func}`layowt.layouts.utils.hdf5_to_dataframe` now exports the row_offset and col_offset columns of the info dataframe as boolean.
 
 
