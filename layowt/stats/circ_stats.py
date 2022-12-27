@@ -60,7 +60,7 @@ def circ_mean(x: Iterable[float], units: str = 'degrees') -> float:
     sinr = np.sum(np.sin(alpha))
     cosr = np.sum(np.cos(alpha))
     
-    return np.arctan2(sinr, cosr)
+    return np.arctan2(sinr, cosr) % (2 * np.pi)
 
 def circ_corr(alpha: Iterable[float], beta: Iterable[float], units: str = 'degrees') -> float:
     """
