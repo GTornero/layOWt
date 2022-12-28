@@ -9,6 +9,7 @@ from scipy.integrate import simpson
 from scipy.special import gamma
 from scipy.stats import linregress
 
+from layowt.stats.stats import weibull_mean
 from layowt.wtg.power_curve import PowerCurve
 
 
@@ -192,6 +193,74 @@ def weibull_aep_map(pc: PowerCurve, weibull_a: str, weibull_k: str, output_path:
             k_array[k_array <= 0] = np.nan
             
             result = weibull_aep_vector(pc, a_array, k_array, units=units, leap_year=leap_year)
+
+            with rasterio.open(
+                output_path,
+                'w',
+                driver='GTiff',
+                height=src_a.shape[0],
+                width=src_a.shape[1],
+                count=1,
+                dtype=result.dtype,
+                crs=src_a.crs,
+                transform=src_a.transform
+                ) as output:
+                    output.write(result, 1)
+
+def weibull_mean_map(weibull_a: str, weibull_k: str, output_path: str = "mean.tif") -> None:
+    """
+    This function takes in a Weibull A (scale) and k (shape) parameter raster \
+    datasets, and creates a Weibull mean value raster dataset. The :func:`layowt.stats.stats.weibull_mean` \
+    function is used to calculate the mean value of the 2-Parameter Weibull Distribution. \
+    
+    The CRS, shape, and cell size of the Weibull A and k datasets must be the same. I.e. the rasters
+    must have the same extent and cells must be aligned prior to being used with this function.
+
+    Parameters
+    ----------
+    weibull_a : str
+        The filepath string for the 2-parameter Weibull scale parameter raster dataset.
+    weibull_k : str
+        The filepath string for the 2-parameter Weibull shape parameter raster dataset.
+    output_path : str, optional
+        Filepath of the output GAEP raster dataset, by default "mean.tif"
+
+    Raises
+    ------
+    CRSError
+        CRS of the Weibull A and k datasets is not the same.
+    DatasetIOShapeError
+        Size of the Weibull A and k datasets is not the same.
+    ValueError
+        Extant or cell size of the Weibull A and k datasets is not the same.
+    
+    See Also
+    --------
+    layowt.stats.stats.weibull_mean : Calculates the mean value of a 2-Parameter Weibull Distribution.
+    """
+    weibull_mean_vector = np.vectorize(weibull_mean)
+    
+    with rasterio.open(weibull_a) as src_a:
+        with rasterio.open(weibull_k) as src_k:
+            if src_a.crs != src_k.crs:
+                raise CRSError(f"A and k datasets must use the same CRS. A: {src_a.crs}, k: {src_k.crs}.")
+            elif src_a.shape != src_k.shape:
+                raise DatasetIOShapeError(f"A and k datasets must be of the same size. A: {src_a.shape}, k: {src_k.shape}.")
+            elif src_a.bounds != src_k.bounds:
+                raise ValueError("A and k datasets must have the same extent.")
+            elif src_a.transform[0:5:4] != src_k.transform[0:5:4]:
+                raise ValueError(f"A and k datasets must have the same cell size. A: {src_a.transform[0:5:4]}, k: {src_k.transform[0:5:4]}.")
+            
+            # clean A and k values below zero
+            a_array = src_a.read(1)
+            k_array = src_k.read(1)
+            
+            a_array[a_array <= 0] = np.nan
+            k_array[k_array <= 0] = np.nan
+            
+            result = weibull_mean_vector(a_array, k_array)
+            
+            result[result <= 0] = np.nan
 
             with rasterio.open(
                 output_path,

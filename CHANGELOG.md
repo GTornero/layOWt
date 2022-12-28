@@ -19,7 +19,9 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
     - {class}`layowt.errors.errors.EmptyLayoutError` for raising errors when the layout geometry is empty.
 - {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
     - Can now filter generated layouts but mooring line crossings and mooring buffer overlaps using the allow_mooring_crossings and allow_mooring_buffer_overlap arguments.
-- {func}`layowt.aep.aep.weibull_ws_to_aep` function to calculate the approximate linear relationship between wind speed changes and AEP changes.
+- {mod}`layowt.aep`: Module:
+    - {func}`layowt.aep.aep.weibull_ws_to_aep` function to calculate the approximate linear relationship between wind speed changes and AEP changes.
+    - {func}`layowt.aep.aep.weibull_mean_map` function to crate maps of mean 2-Parameter Weibull distribution mean values given shape and scale input raster datasets.
 - {mod}`layowt.stats`: Statistics module:
     - {func}`layowt.stats.stats.weibull_mean` Function to calculate the mean value of a 2-parameter Weibull distribution.
     - {func}`layowt.stats.circ_stats.circ_mean` Function to compute the mean value of direction data.
