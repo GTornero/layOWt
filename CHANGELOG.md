@@ -30,6 +30,7 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
     - {attr}`layowt.layouts.layout.Layout.shortest_distance` property added that returns the shortest euclidean distance between turbines in the layout projection units.
 - {class}`layowt.grids.grid.Grid` class:
     - {attr}`layowt.grids.grid.Grid.shortest_distance` property added that returns the shortest euclidean distance between grid points in the grid projection units.
+    - {meth}`layowt.grids.grid.Grid.to_shapefile` method to export a Grid object to a shapefile.
 
 
  

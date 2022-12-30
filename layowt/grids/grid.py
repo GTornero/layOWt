@@ -3,10 +3,12 @@ This module contains the Grid class which is the basic building block used
 to generate layouts.
 """
 
+import fiona
 import matplotlib.pyplot as plt
 import numpy as np
+import pyproj
 from scipy.spatial.distance import cdist
-from shapely.geometry import MultiPoint, Point
+from shapely.geometry import MultiPoint, Point, mapping
 
 from layowt.grids.utils import create_coords
 
@@ -396,3 +398,37 @@ class Grid:
         for coord in self.coords:
             points.append(Point(coord))
         return points
+    
+    def to_shapefile(self, filepath: str, epsg: int) -> None:
+        """
+        Saves the Grid Point geometries as a Shapefile.
+
+        Parameters
+        ----------
+        filepath : str
+            Filepath to save the Shapefile as.
+        epsg : int
+            Valid `EPSG <https://epsg.io/>`_ code for the projection of the Shapefile.
+        
+        Raises
+        ------
+        ValueError
+            Invalid EPSG code passed for the shapefile CRS.
+        """
+        if _is_epsg(epsg):
+            crs = pyproj.CRS.from_epsg(epsg).to_dict()
+        else:
+            raise ValueError(f"Invalid EPSG code passed.")
+        
+        schema = {"geometry": "Point", "properties": {"id": "int"}}
+
+        driver = "ESRI Shapefile"
+        
+        with fiona.open(
+            filepath, "w", crs=crs, driver=driver, schema=schema
+        ) as new_file:
+            for idx, geom in enumerate(self.to_multipoint().geoms, start=1):  # type: ignore
+                new_file.write({"geometry": mapping(geom), "properties": {"id": idx}})
+
+def _is_epsg(epsg: int) -> bool:
+        return str(epsg) in pyproj.database.get_codes("EPSG", pyproj.enums.PJType("CRS"))
