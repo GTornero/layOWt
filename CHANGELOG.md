@@ -20,7 +20,8 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
 - {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` class:
     - Can now filter generated layouts but mooring line crossings and mooring buffer overlaps using the allow_mooring_crossings and allow_mooring_buffer_overlap arguments.
 - {mod}`layowt.aep`: Module:
-    - {func}`layowt.aep.aep.weibull_ws_to_aep` function to calculate the approximate linear relationship between wind speed changes and AEP changes.
+    - {func}`layowt.aep.aep.weibull_ws_to_aep` function to calculate the approximate linear relationship between wind speed changes and AEP changes for a 2-parameter Weibull distribution.
+     {func}`layowt.aep.aep.ts_ws_to_aep` function to calculate the approximate linear relationship between wind speed changes and AEP changes given a wind speed timeseries.
     - {func}`layowt.aep.aep.weibull_mean_map` function to crate maps of mean 2-Parameter Weibull distribution mean values given shape and scale input raster datasets.
 - {mod}`layowt.stats`: Statistics module:
     - {func}`layowt.stats.stats.weibull_mean` Function to calculate the mean value of a 2-parameter Weibull distribution.
@@ -31,6 +32,7 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
 - {class}`layowt.grids.grid.Grid` class:
     - {attr}`layowt.grids.grid.Grid.shortest_distance` property added that returns the shortest euclidean distance between grid points in the grid projection units.
     - {meth}`layowt.grids.grid.Grid.to_shapefile` method to export a Grid object to a shapefile.
+    - {meth}`layowt.grids.grid.Grid.to_multiline` method to return a Shapely MultiLineString representation of the Grid object.
 
 
  

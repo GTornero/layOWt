@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 
 import numpy as np
+import pandas as pd
 import rasterio
 from rasterio.errors import CRSError, DatasetIOShapeError
 from scipy.integrate import simpson
@@ -341,4 +342,80 @@ def weibull_ws_to_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, ws_ran
     
     r = linregress(ws_deltas, aep_deltas)
     
+    return r.slope
+
+def ts_ws_to_aep(ts: Iterable[float], pc: PowerCurve, ws_range: float = 5, ws_step: float = 0.1, how: str | None = None) -> float:
+    """
+    Function to calculate the approximate linear relationship between % changes in wind speed and \
+    % changes in annual energy production for a given PowerCurve and wind speed timeseries.
+    
+    Annual energy production is calculated for a timeseries of wind speeds with small % variations
+    in wind speed between **-ws_range** and **ws_range** in steps of **ws_step**. Annual energy
+    production is calculated by looking up the wind speed values against the power curve.
+    
+    A linear relationship is fit to the results of % change in wind speed vs % change in AEP using
+    Scipy's implementation of linear regression using the :func:`scipy.stats.linregress` function.
+    
+    This method is applicable for small ranges of wind speed variations. For large deviations, the
+    real effect on annual energy production deviates from a linear relationship.
+
+    Parameters
+    ----------
+    pc : PowerCurve
+        PowerCurve used to calculate AEP
+    ws_range : float, optional
+        Range of wind speed % deviation to consider in the analysis, by default 5.
+    ws_step : float, optional
+        wind speed % step increase within the range of % wind speed deviations, by default 0.1.
+    how : str | None
+        Determines the range of wind speed % deviations is calculated. If None or 'negative' is
+        passed, only negative wind speed deviations are used in the anlysis, from -ws_range to 0.
+        If 'positive', from 0 to +ws_range. If 'both' then the double-sided range is used, from
+        -ws_range to +ws_range. By default None.
+
+    Returns
+    -------
+    float
+        The slope of the approximate linear relationship between % changes in wind speed and % changes in AEP.
+    
+    Raises
+    ------
+    ValueError
+        If how not one of 'negative', 'positive', or 'both'.
+    """
+    def _custom_round(x, base=0.5):
+        return round(x*1/base)*base
+
+    if how is not None:
+        if how.lower() not in ['negative', 'positive', 'both']:
+            raise ValueError(f"Invalid value passed for {how=}. Must be one of 'negative', 'positive', or 'both'.")
+    
+    if not isinstance(ts, pd.Series):
+        ws_df = pd.Series(ts) 
+    else:
+        ws_df = ts.copy(deep=True)
+    
+    if (how is None) or (how.lower() == 'negative'):
+        ws_deltas = 1 + (np.arange(-ws_range, ws_step, ws_step) / 100)
+    elif how.lower() == "both":
+        ws_deltas = 1 + (np.arange(-ws_range, ws_range + ws_step, ws_step) / 100)
+    elif how.lower() == 'positive':
+        ws_deltas = 1 + (np.arange(0, ws_range + ws_step, ws_step) / 100)
+    
+    aeps = np.empty(ws_deltas.shape)
+    
+    base = round(pd.Series(pc.data.index).diff(periods=1).mode().values[0], 3)
+    
+    round_ts = _custom_round(ws_df, base)
+    
+    baseline = pc.data['power'].loc[round_ts[(round_ts>=pc.attributes['cut_in']) & (round_ts <= pc.attributes['cut_out'])]].sum()
+    
+    for i, delta in enumerate(ws_deltas):
+        delta_ts = _custom_round(round_ts * delta, base)
+        aeps[i] =  pc.data['power'].loc[delta_ts[(delta_ts>=pc.attributes['cut_in']) & (delta_ts <= pc.attributes['cut_out'])]].sum()
+    
+    aep_deltas = aeps / baseline - 1
+    
+    r = linregress(ws_deltas, aep_deltas)
+
     return r.slope
