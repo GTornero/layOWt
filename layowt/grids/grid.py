@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyproj
 from scipy.spatial.distance import cdist
-from shapely.geometry import MultiPoint, Point, mapping
+from shapely.geometry import MultiLineString, MultiPoint, Point, mapping
 
 from layowt.grids.utils import create_coords
 
@@ -398,6 +398,29 @@ class Grid:
         for coord in self.coords:
             points.append(Point(coord))
         return points
+    
+    def to_multiline(self) -> MultiLineString:
+        """
+        Returns a MultiLineString representation of the Grid.
+
+        Returns
+        -------
+        MultiLineString
+            Shapely MultiLineString representation of the Grid.
+        """
+        lines = []
+        coords = self.coords
+        for i in range(self.n_cols):
+            idx_start = i*self.n_cols
+            idx_end = idx_start + (self.n_cols - 1)
+            line = [coords[idx_start], coords[idx_end]]
+            lines.append(line)
+        for i in range(self.n_rows):
+            idx_start = i
+            idx_end = i - self.n_cols
+            line = [coords[idx_start], coords[idx_end]]
+            lines.append(line)
+        return MultiLineString(lines)
     
     def to_shapefile(self, filepath: str, epsg: int) -> None:
         """
