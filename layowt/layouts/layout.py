@@ -3,6 +3,7 @@ to define project scenario geometries."""
 
 import copy
 import urllib.parse
+from typing import Iterable
 
 import fiona
 import geopandas as gp
@@ -213,6 +214,61 @@ class Layout:
         
         data = pd.read_csv(filepath, **kwargs)
         geom = MultiPoint(list(zip(data[x_header], data[y_header])))  # type: ignore
+        layout_epsg = None
+        
+        if (source_epsg is not None) and (target_epsg is not None):
+            layout_epsg = target_epsg
+            source_crs = pyproj.CRS("EPSG:" + str(source_epsg))
+            target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+            crs_transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
+            geom = transform(crs_transformer.transform, geom)
+        elif source_epsg is not None:
+            layout_epsg = source_epsg
+        
+        layout = cls(epsg=layout_epsg)
+        layout._raw_geom = geom
+        layout.geom = geom
+        return layout
+    
+    @classmethod
+    def from_xy(cls, x: Iterable[float], y: Iterable[float], source_epsg: int | None = None, target_epsg: int | None = None) -> "Layout":
+        """
+        Alternate Layout constructor from xa nd y coordinate data. Pass x and y arrays directly from memory.
+
+        Parameters
+        ----------
+        x : Iterable[float]
+            Array of x-coordinates.
+        y : Iterable[float]
+            Array of y-coordinates.
+        source_epsg : int | None, optional
+            `EPSG <https://epsg.io/>`_ code of the source projection for the passed coordinates.
+            Used alongside target_epsg to compute the coordinate transformation. By default, None.
+        target_epsg : int | None, optional
+            `EPSG <https://epsg.io/>`_ code of the target projection for the points to be Layout
+            to be created in. Used alongside source_epsg to compute the coordinate transformation. By default, None.
+
+        Returns
+        -------
+        Layout
+            Layout object created from the x, y arrays.
+        
+        Raises
+        ------
+        ValueError
+            If x and y arrays are of different length.
+        CRSError
+            If source_epsg or target_epsg are not valid EPSG codes.
+        """
+        if len(x) != len(y):
+            raise ValueError(f"Length Mistmatch. x ({len(x)}) and y ({len(y)}) are not the same length.")
+        
+        if not _is_epsg(source_epsg) and source_epsg is not None:
+            raise CRSError(f"{source_epsg=} not a valid EPSG code.")
+        elif not _is_epsg(target_epsg) and target_epsg is not None:
+            raise CRSError(f"{target_epsg=} not a valid EPSG code.")
+        
+        geom = MultiPoint(list(zip(x, y)))  # type: ignore
         layout_epsg = None
         
         if (source_epsg is not None) and (target_epsg is not None):

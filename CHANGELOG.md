@@ -29,6 +29,7 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
     - {func}`layowt.stats.circ_stats.circ_corr` Function to compute the circular correlation coefficient between two arrays of direction data.
 - {class}`layowt.layouts.layout.Layout` class:
     - {attr}`layowt.layouts.layout.Layout.shortest_distance` property added that returns the shortest euclidean distance between turbines in the layout projection units.
+    - {meth}`layowt.layouts.layout.Layout.from_xy` constnructur method to create layouts by passing arrays of x and y coordinates directly.
 - {class}`layowt.grids.grid.Grid` class:
     - {attr}`layowt.grids.grid.Grid.shortest_distance` property added that returns the shortest euclidean distance between grid points in the grid projection units.
     - {meth}`layowt.grids.grid.Grid.to_shapefile` method to export a Grid object to a shapefile.
