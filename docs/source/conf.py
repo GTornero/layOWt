@@ -40,7 +40,8 @@ extensions = [
     "myst_parser",
     "sphinx.ext.duration",
     "sphinx.ext.autosectionlabel",
-    #"sphinx.ext.autodoc",
+    "sphinx.ext.autodoc",
+    'sphinx.ext.inheritance_diagram',
     "sphinx.ext.napoleon",
     #"sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
@@ -66,6 +67,8 @@ autoapi_options = [
     #'special-members',
     'imported-members',
     ]
+
+autodoc_mock_imports = ["rasterio"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
