@@ -8,11 +8,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
-## [0.4.0] - [2022-11-22]
+## [0.4.0] - [2023-01-23]
  
 LayOWt Version 0.4.0
 
-Added the errors module for LayOWt specific Exceptions and minor additions to existing modules.
+Added the errors module for LayOWt specific Exceptions, statistics module, and minor additions to existing modules.
+Can now import the package directly and access all subpackages with a single import.
  
 ### Added
 - {mod}`layowt.errors`: Errors module with LayOWt specific Exception classes.
@@ -29,7 +30,7 @@ Added the errors module for LayOWt specific Exceptions and minor additions to ex
     - {func}`layowt.stats.circ_stats.circ_corr` Function to compute the circular correlation coefficient between two arrays of direction data.
 - {class}`layowt.layouts.layout.Layout` class:
     - {attr}`layowt.layouts.layout.Layout.shortest_distance` property added that returns the shortest euclidean distance between turbines in the layout projection units.
-    - {meth}`layowt.layouts.layout.Layout.from_xy` constnructur method to create layouts by passing arrays of x and y coordinates directly.
+    - {meth}`layowt.layouts.layout.Layout.from_xy` constructor method to create layouts by passing arrays of x and y coordinates directly.
 - {class}`layowt.grids.grid.Grid` class:
     - {attr}`layowt.grids.grid.Grid.shortest_distance` property added that returns the shortest euclidean distance between grid points in the grid projection units.
     - {meth}`layowt.grids.grid.Grid.to_shapefile` method to export a Grid object to a shapefile.
