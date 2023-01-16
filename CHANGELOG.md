@@ -8,6 +8,31 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
+## [0.5.0] - [2023-01-23]
+ 
+LayOWt Version 0.5.0
+
+Added the capability to upload layouts directly to the internal OW PostGIS Spatial Database. 
+ 
+### Added
+- {meth}`layowt.layouts.layout.Layout.database_engine` method to create an SQLAlchemy database engine.
+- {func}`layowt.layouts.utils.database_engine` method to create an SQLAlchemy database engine.
+- {func}`layowt.layouts.utils.create_database_schema` method to automatically set up a database schema with all the necessary sytem tables in order to upload layouts.
+
+
+ 
+### Changed
+- {meth}`layowt.layouts.layout.Layout.from_postgis` no longer requires username, password, database name, and host as inputs. Takes in an SQLAlchemy engine directly.
+- {func}`layowt.layouts.utils.geoms_from_postgis` no longer requires username, password, database name, and host as inputs. Takes in an SQLAlchemy engine directly.
+
+
+
+### Fixed
+
+
+
+
+=======================================================================
 ## [0.4.0] - [2023-01-23]
  
 LayOWt Version 0.4.0

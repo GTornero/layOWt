@@ -10,12 +10,15 @@ import numpy as np
 import pandas as pd
 import pyproj
 import rasterio
+import sqlalchemy as sa
+from geoalchemy2 import Geometry
 from osgeo import gdal
 from rasterio.crs import CRS
+from rasterio.errors import CRSError
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from shapely.geometry import MultiPoint, shape
 from shapely.ops import transform
-from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION
 
 from layowt.grids.grid import Grid
 from layowt.layouts.floating_layout import FloatingLayout
@@ -56,13 +59,194 @@ def geoms_from_shapefile(filepath: str, target_epsg: int | None = None) -> list:
     return geoms
 
 
+def database_engine(username: str, password: str, host: str = "ow-postgre.postgres.database.azure.com", db_name: str = "corp_ta_ea", dialect: str = "postgresql", echo: bool = False) -> sa.engine.Engine:
+    """
+    Create a SQLAlchemy database Engine.
+
+    Parameters
+    ----------
+    username : str
+        Username used to create the database connection.
+    password : str
+        Password used to create the database connection.
+    host : str, optional
+        Host url for the target database, by default "ow-postgre.postgres.database.azure.com"
+    db_name : str, optional
+        Database name, by default "corp_ta_ea"
+    dialect : str, optional
+        Database dialect, by default "postgresql"
+    echo : bool, optional
+        If True, the Engine will log all statements as well as a repr() of their parameter lists to
+        the default log handler, which defaults to sys.stdout for output.
+
+    Returns
+    -------
+    sa.engine.Engine
+        SQLAlchemy database engine.
+    """
+    password = urllib.parse.quote_plus(password)
+    
+    con_str = f"{dialect}://{username}:{password}@{host}/{db_name}"
+    engine = sa.create_engine(con_str, echo=echo, future=True)
+    
+    return engine
+
+def _valid_schema(engine: sa.engine.Engine, schema: str) -> bool:
+    """
+    Check if the target schema already contains all the necessary system layout tables.
+
+    Parameters
+    ----------
+    engine : sa.engine.Engine
+        SQLAlchemy connection engine to the database.
+    schema : str, optional
+        _description_, by default schema
+
+    Returns
+    -------
+    bool
+        _description_
+    """
+    TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines"]
+    missing_tables = []
+    valid_schema = True
+    
+    for table_name in TABLE_NAMES:
+        if not sa.inspect(engine).has_table(table_name, schema=schema):
+            valid_schema = False
+    
+    return valid_schema
+
+def create_database_schema(engine: sa.engine.Engine, schema: str, epsg: int) -> None:
+        
+    # # Check schema exists in database (once we upgrade to SQLAlchemy 2.0)
+    # if not sa.inspect(engine).has_schema("testing"):
+    #    raise KeyError(f"Schema {schema} does not exist.")
+    
+    if _valid_schema(engine, schema):
+        print(f'All the necessary layout system tables already exist in schema "{schema}".')
+        return None
+    
+    if not _is_epsg(epsg=epsg):
+        raise ValueError(f"Invalid EPSG code {epsg} passed.")
+    
+    metadata = sa.MetaData()
+    
+    boundary_table = _create_boundary_table(metadata=metadata, schema=schema, epsg=epsg)
+    constraint_table = _create_constraint_table(metadata=metadata, schema=schema, epsg=epsg)
+    grid_table = _create_grid_table(metadata=metadata, schema=schema, epsg=epsg)
+    layout_table = _create_layout_table(metadata=metadata, schema=schema, epsg=epsg)
+    turbine_table = _create_turbine_table(metadata=metadata, schema=schema, epsg=epsg)
+    
+    metadata.create_all(engine)
+    
+    print(f"Schema {schema} set up successfully!")
+    
+def _create_boundary_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
+    
+    boundary_table = sa.Table(
+        "_boundaries",
+        metadata,
+        sa.Column("boundary_id", sa.Integer, sa.Identity(always=True), primary_key=True),
+        sa.Column("boundary_name", sa.String(50), nullable=False),
+        sa.Column("geom", Geometry('MULTIPOLYGON', srid=epsg), nullable=False),
+        sa.Column("type", sa.String(50), nullable=False),
+        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
+        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
+        sa.Column("comments", sa.Text),
+        sa.Index(schema.lower() + "_boundary_id_idx", "boundary_id"),
+        schema=schema
+    )
+    
+    return boundary_table
+    
+def _create_constraint_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
+    
+    constraint_table = sa.Table(
+        "_constraint_scenarios",
+        metadata,
+        sa.Column("constraint_id", sa.Integer, sa.Identity(always=True), primary_key=True),
+        sa.Column("constraint_name", sa.String(50), nullable=False),
+        sa.Column("geom", Geometry('MULTIPOLYGON', srid=epsg), nullable=False),
+        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
+        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
+        sa.Column("comments", sa.Text),
+        sa.Index(schema.lower() + "_constraint_id_idx", "constraint_id"),
+        schema=schema
+    )
+    
+    return constraint_table
+
+def _create_grid_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
+
+    grid_table =sa.Table(
+        "_grids",
+        metadata,
+        sa.Column('grid_id', sa.Integer, sa.Identity(always=True), primary_key=True),
+        sa.Column("geom", Geometry('MULTIPOINT', srid=epsg), nullable=False),
+        sa.Column("row_step", sa.Numeric(8, 4), nullable=False),
+        sa.Column("col_step", sa.Numeric(8, 4), nullable=False),
+        sa.Column("n_rows", sa.Integer, nullable=False),
+        sa.Column("n_cols", sa.Integer, nullable=False),
+        sa.Column("angle", sa.Numeric(6, 4), nullable=False),
+        sa.Column("row_offset", sa.Boolean, nullable=False),
+        sa.Column("col_offset", sa.Boolean, nullable=False),
+        sa.Column("x_shear", sa.Numeric(6, 4), nullable=False),
+        sa.Column("y_shear", sa.Numeric(6, 4), nullable=False),
+        sa.Column("origin_x", DOUBLE_PRECISION, nullable=False),
+        sa.Column("origin_y", DOUBLE_PRECISION, nullable=False),
+        sa.Column("scale", sa.Float, nullable=False),
+        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
+        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
+        sa.Column("comments", sa.Text),
+        sa.Index(schema.lower() + "_grid_id_idx", "grid_id"),
+        sa.Index(schema.lower() + "_grid_angle_idx", "angle"),
+        sa.Index(schema.lower() + "_grid_row_step_idx", "row_step"),
+        sa.Index(schema.lower() + "_grid_col_step_idx", "col_step"),
+        schema=schema
+    )
+
+    return grid_table
+
+def _create_layout_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
+    
+    layout_table = sa.Table(
+        "_layout_info",
+        metadata,
+        sa.Column("layout_id", sa.Integer, sa.Identity(always=True), primary_key=True),
+        sa.Column("n_wtg", sa.Integer, nullable=False),
+        sa.Column("grid_id", sa.Integer, sa.ForeignKey(schema + "._grids.grid_id", onupdate="CASCADE", ondelete="SET NULL")),
+        sa.Column("boundary_id", sa.Integer, sa.ForeignKey(schema + "._boundaries.boundary_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
+        sa.Column("constraint_id", sa.Integer, sa.ForeignKey(schema + "._constraint_scenarios.constraint_id", onupdate="CASCADE", ondelete="SET NULL")),
+        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
+        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
+        sa.Column("base_case", sa.Boolean, default=False),
+        sa.Column("comments", sa.Text),
+        schema=schema
+    )
+    
+    return layout_table
+
+def _create_turbine_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
+    
+    turbine_table = sa.Table(
+        "_turbines",
+        metadata,
+        sa.Column("turbine_id", sa.Integer, sa.Identity(always=True), primary_key=True),
+        sa.Column("layout_id", sa.Integer, sa.ForeignKey(schema + "._layout_info.layout_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
+        sa.Column("geom", Geometry('POINT', srid=epsg), nullable=False),
+        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
+        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
+        sa.Index(schema.lower() + "_turbines_layout_id_idx", "layout_id"),
+        schema=schema
+    )
+    
+    return turbine_table
+
 def geoms_from_postgis(
-    username: str,
-    password: str,
+    engine: sa.engine.Engine,
     schema: str,
     table: str,
-    host: str = "ow-postgre.postgres.database.azure.com",
-    db_name: str = "corp_ta_ea",
     geom_col: str = "geom",
     target_epsg: int | None = None,
     **kwargs,
@@ -72,22 +256,18 @@ def geoms_from_postgis(
 
     Parameters
     ----------
-    username : str
-        username used to log into the PostGIS database connection.
-    password : str
-        password used to log into the PostGIS database connection.
+    engine: sa.engine.Engine
+        SQLAlchemy database engine.
     schema : str
         name of the schema where the target table is located within the database.
     table : str
         name of the PostGIS table.
-    host : str, optional
-        host used to connect to the PostGIS database, by default "ow-postgre.postgres.database.azure.com"
-    db_name : str, optional
-        name of the PostGIS database within the hose, by default "corp_ta_ea"
     geom_col : str, optional
         name of the geometry column within the table, by default "geom"
     target_epsg : int | None, optional
         `EPSG <https://epsg.io/>`_ code of the target projection for the geometries to be loaded in. By default, None.
+    **kwargs : optional
+        Additional keyword arguments passed into geopandas.from_postgis.
 
     Returns
     -------
@@ -95,10 +275,6 @@ def geoms_from_postgis(
         list of shapely geometries contained in the PostGIS table.
     """
     # TODO: Should change the geopandas method from_postgis to read_postgis
-    password = urllib.parse.quote_plus(password)    # to clean special characters in the password.
-    
-    db_string = f"postgresql://{username}:{password}@{host}/{db_name}"
-    engine = create_engine(db_string)
     data = gp.GeoDataFrame.from_postgis(
         f'SELECT * from "{schema}"."{table}"',
         con=engine,
@@ -109,6 +285,8 @@ def geoms_from_postgis(
     geoms = list(data[geom_col])
     
     if target_epsg is not None:
+        if not _is_epsg(target_epsg):
+            raise CRSError(f"{target_epsg=} not a valid EPSG code.")
         src_crs = data.crs
         target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
         crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
@@ -588,3 +766,6 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
                 info_df["col_offset"] = info_df["col_offset"].astype(bool)
                 
                 return (coords_df, info_df)
+
+def _is_epsg(epsg: int) -> bool:
+    return str(epsg) in pyproj.database.get_codes("EPSG", pyproj.enums.PJType("CRS"))
