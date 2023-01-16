@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 import pyproj
 import rasterio
+import sqlalchemy as sa
+from geoalchemy2.shape import from_shape
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from rasterio.errors import CRSError
@@ -20,7 +22,6 @@ from scipy.spatial.distance import cdist
 from shapely.geometry import (MultiPoint, MultiPolygon, Point, Polygon,
                               mapping, shape)
 from shapely.ops import transform, unary_union
-from sqlalchemy import create_engine
 
 from ..grids import Grid
 
@@ -288,12 +289,9 @@ class Layout:
     @classmethod
     def from_postgis(
         cls,
-        username: str,
-        password: str,
+        engine: sa.engine.Engine,
         schema: str,
         table: str,
-        host: str = "ow-postgre.postgres.database.azure.com",
-        db_name: str = "corp_ta_ea",
         geom_col: str = "geom",
         target_epsg: int | None = None,
         **kwargs,
@@ -304,18 +302,12 @@ class Layout:
 
         Parameters
         ----------
-        username : str
-            Username used to create the database connection.
-        password : str
-            Password used to create the database connection.
+        engine: sa.engine.Engine
+            SQLAlchemy database engine.
         schema : str
             Schema name where the target table is located within the database.
         table : str
             Table name used to create the Layout.
-        host : str, optional
-            Host url for the target database, by default "ow-postgre.postgres.database.azure.com"
-        db_name : str, optional
-            Database name, by default "corp_ta_ea"
         geom_col : str, optional
             Name of the table column name containing the geometry data, by default "geom"
         target_epsg : int | None, optional
@@ -336,10 +328,7 @@ class Layout:
             If target_epsg is not a valid EPSG code.
         """
         # TODO: Should change the geopandas method GeoDataFrame.from_postgis to geopandas.read_postgis
-        password = urllib.parse.quote_plus(password)    # to clean special characters in the password.
         
-        db_string = f"postgresql://{username}:{password}@{host}/{db_name}"
-        engine = create_engine(db_string)
         data = gp.GeoDataFrame.from_postgis(
             f'SELECT * from "{schema}"."{table}"',
             con=engine,
@@ -1028,7 +1017,42 @@ class Layout:
         ) as new_file:
             for idx, geom in enumerate(self.geom.geoms, start=1):  # type: ignore
                 new_file.write({"geometry": mapping(geom), "properties": {"id": idx}})
+    
+    
+    @staticmethod
+    def database_engine(username: str, password: str, host: str = "ow-postgre.postgres.database.azure.com", db_name: str = "corp_ta_ea", dialect: str = "postgresql", echo: bool = False) -> sa.engine.Engine:
+        """
+        Create a SQLAlchemy database Engine.
 
+        Parameters
+        ----------
+        username : str
+            Username used to create the database connection.
+        password : str
+            Password used to create the database connection.
+        host : str, optional
+            Host url for the target database, by default "ow-postgre.postgres.database.azure.com"
+        db_name : str, optional
+            Database name, by default "corp_ta_ea"
+        dialect : str, optional
+            Database dialect, by default "postgresql"
+        echo : bool, optional
+            If True, the Engine will log all statements as well as a repr() of their parameter lists to
+            the default log handler, which defaults to sys.stdout for output.
+
+        Returns
+        -------
+        sa.engine.Engine
+            SQLAlchemy database engine.
+        """
+        password = urllib.parse.quote_plus(password)
+        
+        con_str = f"{dialect}://{username}:{password}@{host}/{db_name}"
+        engine = sa.create_engine(con_str, echo=echo, future=True)
+        
+        return engine
+    
+    
     def to_postgis(
         self,
         username: str,
