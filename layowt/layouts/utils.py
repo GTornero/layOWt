@@ -100,12 +100,12 @@ def _valid_schema(engine: sa.engine.Engine, schema: str) -> bool:
     engine : sa.engine.Engine
         SQLAlchemy connection engine to the database.
     schema : str, optional
-        _description_, by default schema
+        Schema name, by default schema
 
     Returns
     -------
     bool
-        _description_
+        If True the schema already has all the required system tables to upload layouts.
     """
     TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines"]
     missing_tables = []
@@ -120,7 +120,7 @@ def _valid_schema(engine: sa.engine.Engine, schema: str) -> bool:
 def create_database_schema(engine: sa.engine.Engine, schema: str, epsg: int) -> None:
         
     # # Check schema exists in database (once we upgrade to SQLAlchemy 2.0)
-    # if not sa.inspect(engine).has_schema("testing"):
+    # if not sa.inspect(engine).has_schema(schema):
     #    raise KeyError(f"Schema {schema} does not exist.")
     
     if _valid_schema(engine, schema):
@@ -140,7 +140,7 @@ def create_database_schema(engine: sa.engine.Engine, schema: str, epsg: int) -> 
     
     metadata.create_all(engine)
     
-    print(f"Schema {schema} set up successfully!")
+    print(f'Schema "{schema}" set up successfully!')
     
 def _create_boundary_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
     
@@ -151,8 +151,8 @@ def _create_boundary_table(metadata: sa.schema.MetaData, schema: str, epsg: int)
         sa.Column("boundary_name", sa.String(50), nullable=False),
         sa.Column("geom", Geometry('MULTIPOLYGON', srid=epsg), nullable=False),
         sa.Column("type", sa.String(50), nullable=False),
-        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
-        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
+        sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
+        sa.Column("created_by", sa.String(50), server_default=sa.func.current_user(), nullable=False),
         sa.Column("comments", sa.Text),
         sa.Index(schema.lower() + "_boundary_id_idx", "boundary_id"),
         schema=schema
@@ -168,8 +168,8 @@ def _create_constraint_table(metadata: sa.schema.MetaData, schema: str, epsg: in
         sa.Column("constraint_id", sa.Integer, sa.Identity(always=True), primary_key=True),
         sa.Column("constraint_name", sa.String(50), nullable=False),
         sa.Column("geom", Geometry('MULTIPOLYGON', srid=epsg), nullable=False),
-        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
-        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
+        sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
+        sa.Column("created_by", sa.String(50), server_default=sa.func.current_user(), nullable=False),
         sa.Column("comments", sa.Text),
         sa.Index(schema.lower() + "_constraint_id_idx", "constraint_id"),
         schema=schema
@@ -196,8 +196,8 @@ def _create_grid_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> 
         sa.Column("origin_x", DOUBLE_PRECISION, nullable=False),
         sa.Column("origin_y", DOUBLE_PRECISION, nullable=False),
         sa.Column("scale", sa.Float, nullable=False),
-        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
-        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
+        sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
+        sa.Column("created_by", sa.String(50), server_default=sa.func.current_user(), nullable=False),
         sa.Column("comments", sa.Text),
         sa.Index(schema.lower() + "_grid_id_idx", "grid_id"),
         sa.Index(schema.lower() + "_grid_angle_idx", "angle"),
@@ -218,9 +218,9 @@ def _create_layout_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -
         sa.Column("grid_id", sa.Integer, sa.ForeignKey(schema + "._grids.grid_id", onupdate="CASCADE", ondelete="SET NULL")),
         sa.Column("boundary_id", sa.Integer, sa.ForeignKey(schema + "._boundaries.boundary_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
         sa.Column("constraint_id", sa.Integer, sa.ForeignKey(schema + "._constraint_scenarios.constraint_id", onupdate="CASCADE", ondelete="SET NULL")),
-        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
-        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
-        sa.Column("base_case", sa.Boolean, default=False),
+        sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
+        sa.Column("created_by", sa.String(50), server_default=sa.func.current_user(), nullable=False),
+        sa.Column("base_case", sa.Boolean, server_default=sa.false()),
         sa.Column("comments", sa.Text),
         schema=schema
     )
@@ -235,8 +235,8 @@ def _create_turbine_table(metadata: sa.schema.MetaData, schema: str, epsg: int) 
         sa.Column("turbine_id", sa.Integer, sa.Identity(always=True), primary_key=True),
         sa.Column("layout_id", sa.Integer, sa.ForeignKey(schema + "._layout_info.layout_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
         sa.Column("geom", Geometry('POINT', srid=epsg), nullable=False),
-        sa.Column("date_created", sa.Date, default=sa.select(sa.func.current_date()), nullable=False),
-        sa.Column("created_by", sa.String(50), default=sa.select(sa.func.current_user()), nullable=False),
+        sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
+        sa.Column("created_by", sa.String(50), server_default=sa.func.current_user(), nullable=False),
         sa.Index(schema.lower() + "_turbines_layout_id_idx", "layout_id"),
         schema=schema
     )
@@ -275,9 +275,11 @@ def geoms_from_postgis(
         list of shapely geometries contained in the PostGIS table.
     """
     # TODO: Should change the geopandas method from_postgis to read_postgis
-    data = gp.GeoDataFrame.from_postgis(
+    new_engine = sa.create_engine(engine.url, echo=False, future=False)
+    
+    data = gp.read_postgis(
         f'SELECT * from "{schema}"."{table}"',
-        con=engine,
+        con=new_engine,
         geom_col=geom_col,
         **kwargs,
     )
