@@ -117,7 +117,7 @@ def _valid_schema(engine: sa.engine.Engine, schema: str) -> bool:
     
     return valid_schema
 
-def create_database_schema(engine: sa.engine.Engine, schema: str, epsg: int) -> None:
+def setup_database_schema(engine: sa.engine.Engine, schema: str, epsg: int) -> None:
         
     # # Check schema exists in database (once we upgrade to SQLAlchemy 2.0)
     # if not sa.inspect(engine).has_schema(schema):
