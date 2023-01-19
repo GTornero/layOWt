@@ -18,7 +18,7 @@ from rasterio.errors import CRSError
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from shapely.geometry import MultiPoint, shape
 from shapely.ops import transform
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION
+from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION
 
 from layowt.grids.grid import Grid
 from layowt.layouts.floating_layout import FloatingLayout
@@ -91,7 +91,7 @@ def database_engine(username: str, password: str, host: str = "ow-postgre.postgr
     
     return engine
 
-def _valid_schema(engine: sa.engine.Engine, schema: str) -> bool:
+def _valid_schema(engine: sa.engine.Engine, schema: str, floating : bool) -> bool:
     """
     Check if the target schema already contains all the necessary system layout tables.
 
@@ -99,15 +99,21 @@ def _valid_schema(engine: sa.engine.Engine, schema: str) -> bool:
     ----------
     engine : sa.engine.Engine
         SQLAlchemy connection engine to the database.
-    schema : str, optional
+    schema : str
         Schema name, by default schema
+    floating : bool
+        If the schema should support floating layouts and have a "_moorings" table.
 
     Returns
     -------
     bool
         If True the schema already has all the required system tables to upload layouts.
     """
-    TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines"]
+    if floating:
+        TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines", "_moorings"]
+    else:
+        TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines"]
+    
     missing_tables = []
     valid_schema = True
     
@@ -161,7 +167,7 @@ def setup_database_schema(engine: sa.engine.Engine, schema: str, epsg: int, floa
     if schema not in sa.inspect(engine).get_schema_names():
         raise KeyError(f"Schema {schema} does not exist in the database.")
     
-    if _valid_schema(engine, schema):
+    if _valid_schema(engine, schema, floating):
         print(f'All the necessary layout system tables already exist in schema "{schema}".')
         return None
     
@@ -175,6 +181,9 @@ def setup_database_schema(engine: sa.engine.Engine, schema: str, epsg: int, floa
     grid_table = _create_grid_table(metadata=metadata, schema=schema, epsg=epsg)
     layout_table = _create_layout_table(metadata=metadata, schema=schema, epsg=epsg)
     turbine_table = _create_turbine_table(metadata=metadata, schema=schema, epsg=epsg)
+    
+    if floating:
+        mooring_table = _create_mooring_table(metadata=metadata, schema=schema, epsg=epsg)
     
     metadata.create_all(engine)
     
@@ -196,7 +205,7 @@ def _create_boundary_table(metadata: sa.schema.MetaData, schema: str, epsg: int)
         schema=schema
     )
     
-    return None
+    return boundary_table
     
 def _create_constraint_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
     
@@ -273,6 +282,7 @@ def _create_turbine_table(metadata: sa.schema.MetaData, schema: str, epsg: int) 
         sa.Column("turbine_id", sa.Integer, sa.Identity(always=True), primary_key=True),
         sa.Column("layout_id", sa.Integer, sa.ForeignKey(schema + "._layout_info.layout_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
         sa.Column("geom", Geometry('POINT', srid=epsg), nullable=False),
+        sa.Column("bathymetry", sa.Float),
         sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
         sa.Column("created_by", sa.String(50), server_default=sa.func.current_user(), nullable=False),
         sa.Index(schema.lower() + "_turbines_layout_id_idx", "layout_id"),
@@ -280,6 +290,24 @@ def _create_turbine_table(metadata: sa.schema.MetaData, schema: str, epsg: int) 
     )
     
     return turbine_table
+
+def _create_mooring_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
+    
+    mooring_table = sa.Table(
+        "_moorings",
+        metadata,
+        sa.Column("mooring_id", sa.Integer, sa.Identity(always=True), primary_key=True),
+        sa.Column("layout_id", sa.Integer, sa.ForeignKey(schema + "._layout_info.layout_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
+        sa.Column("turbine_id", sa.Integer, sa.ForeignKey(schema + "._turbines.turbine_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
+        sa.Column("geom", Geometry('MULTILINESTRING', srid=epsg), nullable=False),
+        sa.Column("radius", sa.Float, nullable=False),
+        sa.Column("n_moorings", sa.Integer, nullable=False),
+        sa.Column("platform_bearing", sa.Float, nullable=False),
+        sa.Column("mooring_bearings", ARRAY(sa.Float, as_tuple=True, dimensions=1)),
+        schema=schema
+    )
+    
+    return mooring_table
 
 def geoms_from_postgis(
     engine: sa.engine.Engine,
