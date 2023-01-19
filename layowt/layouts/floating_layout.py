@@ -3,12 +3,14 @@ This module defines the FloatingLayout class.
 This class can be used to design and represent floating turbines and their mooring lines.
 """
 
-from typing import Callable
+from typing import Callable, Optional
 
 import fiona
 import geopandas as gp
 import numpy as np
 import pyproj
+import sqlalchemy as sa
+from geoalchemy2.shape import from_shape
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from shapely.geometry import MultiLineString, MultiPolygon, Polygon, mapping
@@ -872,3 +874,281 @@ class FloatingLayout(Layout):
                 ) as new_file:
                     for idx, geom in enumerate(self.mooring_buffers.geoms, start=1):  # type: ignore
                         new_file.write({"geometry": mapping(geom), "properties": {"id": idx}})
+    
+    def to_database(
+        self,
+        engine: sa.engine.Engine,
+        schema: str,
+        boundary_id: Optional[int] = None,
+        exclusion_id: Optional[int] = None,
+        grid_id: Optional[int] = None,
+        upload_boundary: bool = False,
+        boundary_name: Optional[str] = None,
+        boundary_type: Optional[str] = None,
+        boundary_comments: Optional[str] = None,
+        upload_exclusion: bool = False,
+        exclusion_name: Optional[str] = None,
+        exclusion_comments: Optional[str] = None,
+        upload_grid: bool = False,
+        grid_comments: Optional[str] = None,
+        layout_comments: Optional[str] = None,
+    ) -> None:
+        """
+        Uploads the layout and associated data to the OW PostGIS database.
+        
+        The target schema must have been previously set-up with the necessary system tables for
+        Layout upload. Can use the :func:`layowt.layouts.utils.setup_database_schema` function to
+        do so. 
+        
+        Requires the following table system to exist:
+            * _boundaries
+            * _constraint_scenarios
+            * _grids
+            * _layout_info
+            * _turbines
+            * _moorings
+
+        Parameters
+        ----------
+        engine : sa.engine.Engine
+            SQLAlchemy database engine.
+        schema : str
+            Target database schema.
+        boundary_id : Optional[int], optional
+            boundary_id foreign key if not uploading the Layout's own area geometry as a new entry
+            in the database and instead referencing an existing geometry in the database
+            "_boundaries" table, by default None.
+        exclusion_id : Optional[int], optional
+            constraint_id foreign key if not uploading the Layout's own exclusion geometry as a new entry
+            in the database and instead referencing an existing geometry in the database
+            "_constraint_scenarios" table, by default None.
+        grid_id : Optional[int], optional
+            grid_id foreign key if not uploading the Layout's own grid geometry as a new entry
+            in the database and instead referencing an existing geometry in the database
+            "_grids" table, by default None.
+        upload_boundary : bool, optional
+            True if uploading the Layout's area geometry as a new entry to the database
+            "_boundaries" table, by default False.
+        boundary_name : Optional[str], optional
+            Descriptive name of the area geometry, by default None.
+        boundary_type : Optional[str], optional
+            Description on the type of area described by the Layout's area geometry, by default
+            None.
+        boundary_comments : Optional[str], optional
+            General comments on the Layout's area, by default None.
+        upload_exclusion : bool, optional
+            True if uploading the Layout's exclusion geometry as a new entry to the database
+            "_constraint_scenarios" table, by default False.
+        exclusion_name : Optional[str], optional
+            Descriptive name of the exclusion geometry, by default None.
+        exclusion_comments : Optional[str], optional
+            General comments on the Layout's exclusions, by default None.
+        upload_grid : bool, optional
+            True if uploading the Layout's grid geometry as a new entry to the database
+            "_grids" table, by default False.
+        grid_comments : Optional[str], optional
+            General comments on the Layout's grid, by default None.
+        layout_comments : Optional[str], optional
+            General comments on the Layout, by default None.
+
+        Raises
+        ------
+        KeyError
+            If schema does not exist in the database.
+        LayoutSchemaError
+            If the schema exists but has not yet been setup correctly using the
+            :func:`layowt.layouts.utils.setup_database_schema` function.
+        CRSError
+            If the EPSG code of the Layout does not match the EPSG of the geometry columns in the
+            database.
+        ValueError
+            If boundary_id is None when upload_boundary=False. boundary_id is not a nullable field
+            in the database.
+        
+        See Also
+        --------
+        layowt.layouts.utils.setup_database_schema : Function to setup a database schema with the necessary tables for layout upload.
+        layowt.layouts.layout.Layout.database_engine : Static method to create a database engine.
+        layowt.layouts.utils.database_engine : Function to create a database engine.
+        """
+        # Check schema exists in database 
+        if schema not in sa.inspect(engine).get_schema_names():
+           raise KeyError(f"Schema {schema} does not exist in the database.")
+        
+        if not _valid_schema(engine=engine, schema=schema, floating=True):
+            err_msg = f"Schema {schema} is not yet set up with all the necessary system tables for layout upload."
+            raise LayoutSchemaError(err_msg)
+        
+        # Check EPSG of layout is the same as the database EPSG
+        get_srid = sa.select(sa.func.Find_SRID(schema, "_turbines", "geom"))
+        
+        with engine.connect() as conn:
+            database_srid = conn.execute(get_srid).fetchone()[0]
+        
+        if self.epsg != database_srid:
+            raise CRSError(f"Mismatch between Layout EPSG ({self.epsg}) and the database Geomatry SRID {database_srid}.")
+        
+        metadata = sa.MetaData()
+        
+        layout_table = sa.Table("_layout_info", metadata, autoload_with=engine, schema=schema)
+        turbine_table = sa.Table("_turbines", metadata, autoload_with=engine, schema=schema)
+        mooring_table = sa.Table("_moorings", metadata, autoload_with=engine, schema=schema)
+        
+        if boundary_id is None:
+            if upload_boundary is True:
+                if boundary_name is None:
+                    boundary_name = input("Please enter a descriptive name for the Layout Boundary: \n")
+                if boundary_type is None:
+                    boundary_type = input("Please enter a descriptive type for the Layout Boundary (e.g. 'Lease Area'): \n")
+            else:
+                raise ValueError("boundary_id cannot be None when upload_boundary is False.")
+        
+        if exclusion_id is None:
+            if upload_exclusion is True:
+                if exclusion_name is None:
+                    exclusion_name = input("Please enter a descriptive name for the Layout Exclusions: \n")
+        
+        with engine.connect() as conn:
+            # Boundary Upload
+            if (upload_boundary) and (boundary_id is None):
+                if isinstance(self.area, MultiPolygon):
+                    boundary_geom = from_shape(self.area, srid=self.epsg)
+                else:
+                    boundary_geom = from_shape(MultiPolygon([self.area]), srid=self.epsg)
+                    
+                boundary_table = sa.Table("_boundaries", metadata, autoload_with=engine, schema=schema)
+                
+                boundary_insert = sa.insert(boundary_table).values(
+                    boundary_name=boundary_name,
+                    type=boundary_type,
+                    comments=boundary_comments,
+                    geom=boundary_geom
+                    )
+                
+                result = conn.execute(boundary_insert)
+                boundary_id = result.inserted_primary_key[0]
+
+            # Exclusion Upload
+            if (upload_exclusion) and (exclusion_id is None):
+                if isinstance(self.exclusion, MultiPolygon):
+                    constraint_geom = from_shape(self.exclusion, srid=self.epsg)
+                else:
+                    constraint_geom = from_shape(MultiPolygon([self.exclusion]), srid=self.epsg)
+                
+                constraint_table = sa.Table("_constraint_scenarios", metadata, autoload_with=engine, schema=schema)
+                
+                constraint_insert = sa.insert(constraint_table).values(
+                    constraint_name=exclusion_name,
+                    comments=exclusion_comments,
+                    geom=constraint_geom
+                )
+                
+                result = conn.execute(constraint_insert)
+                exclusion_id = result.inserted_primary_key[0]
+            
+            # Grid Upload
+            if (upload_grid) and (grid_id is None):
+                grid_table = sa.Table("_grids", metadata, autoload_with=engine, schema=schema)
+                
+                grid_geom = from_shape(self.grid.to_multipoint(), srid=self.epsg)
+                
+                grid_insert = sa.insert(grid_table).values(
+                    row_step=self.grid.row_step,
+                    col_step=self.grid.col_step,
+                    n_rows=int(self.grid.n_rows),
+                    n_cols=int(self.grid.n_cols),
+                    angle=float(self.grid.angle),
+                    row_offset=self.grid.row_offset,
+                    col_offset=self.grid.col_offset,
+                    x_shear=float(self.grid.x_shear or 0),
+                    y_shear=float(self.grid.y_shear or 0),
+                    origin_x=self.grid.origin[0],
+                    origin_y=self.grid.origin[1],
+                    scale= self.grid.scale,
+                    comments=grid_comments,
+                    geom=grid_geom
+                )
+                
+                result = conn.execute(grid_insert)
+                grid_id = result.inserted_primary_key[0]
+                
+            # Upload Layout info
+            layout_insert = sa.insert(layout_table).values(
+                n_wtg=self.n_wtg,
+                grid_id=grid_id,
+                boundary_id=boundary_id,
+                constraint_id=exclusion_id,
+                comments=layout_comments
+            )
+            
+            result = conn.execute(layout_insert)
+            layout_id = result.inserted_primary_key[0]
+            
+            # Upload Turbines
+            turbines_to_insert = []
+            turbine_primary_keys = []
+            for i, turbine in enumerate(self.geom.geoms):
+                if self.has_bathymetry():
+                    insert_turbine = sa.insert(turbine_table).values(
+                        geom=from_shape(turbine, srid=self.epsg),
+                        layout_id=layout_id,
+                        bathymetry=self.samples[i]
+                    )
+                    result = conn.execute(insert_turbine)
+                    turbine_primary_keys.append(result.inserted_primary_key[0])
+                else:
+                    insert_turbine = sa.insert(turbine_table).values(
+                        geom=from_shape(turbine, srid=self.epsg),
+                        layout_id=layout_id
+                    )
+                    result = conn.execute(insert_turbine)
+                    turbine_primary_keys.append(result.inserted_primary_key[0])
+            
+            # Upload moorings
+            if self.has_moorings:
+                moorings_to_insert = []
+                for i, mooring in enumerate(self.mooring_geom):
+                    moorings_to_insert.append({"layout_id": layout_id,
+                                               "turbine_id": turbine_primary_keys[i],
+                                               "geom": from_shape(mooring, srid=self.epsg),
+                                               "radius": float(self.mooring_radii[i]),
+                                               "n_moorings": self.n_moorings,
+                                               "platform_bearing": self.platform_bearing,
+                                               "mooring_bearings": [float(x) for x in self.mooring_bearings]})
+                
+                insert_moorings = sa.insert(mooring_table, moorings_to_insert)
+                result = conn.execute(insert_moorings)
+
+            conn.commit()
+        
+
+def _valid_schema(engine: sa.engine.Engine, schema: str, floating : bool = False) -> bool:
+    """
+    Check if the target schema already contains all the necessary system layout tables.
+
+    Parameters
+    ----------
+    engine : sa.engine.Engine
+        SQLAlchemy connection engine to the database.
+    schema : str, optional
+        Schema name, by default schema
+    floating : bool
+        If the schema should support floating layouts and have a "_moorings" table.
+
+    Returns
+    -------
+    bool
+        If True the schema already has all the required system tables to upload layouts.
+    """
+    if floating:
+        TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines", "_moorings"]
+    else:
+        TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines"]
+    
+    valid_schema = True
+    
+    for table_name in TABLE_NAMES:
+        if not sa.inspect(engine).has_table(table_name, schema=schema):
+            valid_schema = False
+    
+    return valid_schema
