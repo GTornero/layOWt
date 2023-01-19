@@ -1187,7 +1187,7 @@ class Layout:
         if schema not in sa.inspect(engine).get_schema_names():
            raise KeyError(f"Schema {schema} does not exist in the database.")
         
-        if not _valid_schema(engine=engine, schema=schema):
+        if not _valid_schema(engine=engine, schema=schema, floating=False):
             err_msg = f"Schema {schema} is not yet set up with all the necessary system tables for layout upload."
             raise LayoutSchemaError(err_msg)
         
@@ -1297,8 +1297,11 @@ class Layout:
             
             # Upload Turbines
             turbines_to_insert = []
-            for turbine in self.geom.geoms:
-                turbines_to_insert.append({"geom": from_shape(turbine, srid=self.epsg), "layout_id": layout_id})
+            for i, turbine in enumerate(self.geom.geoms):
+                if self.has_bathymetry():
+                    turbines_to_insert.append({"geom": from_shape(turbine, srid=self.epsg), "layout_id": layout_id, "bathymetry": self.samples[i]})
+                else:
+                    turbines_to_insert.append({"geom": from_shape(turbine, srid=self.epsg), "layout_id": layout_id})
 
             insert_turbines = sa.insert(turbine_table, turbines_to_insert)
             result = conn.execute(insert_turbines)
@@ -1306,7 +1309,7 @@ class Layout:
             conn.commit()
         
 
-def _valid_schema(engine: sa.engine.Engine, schema: str) -> bool:
+def _valid_schema(engine: sa.engine.Engine, schema: str, floating : bool = False) -> bool:
     """
     Check if the target schema already contains all the necessary system layout tables.
 
@@ -1316,13 +1319,19 @@ def _valid_schema(engine: sa.engine.Engine, schema: str) -> bool:
         SQLAlchemy connection engine to the database.
     schema : str, optional
         Schema name, by default schema
+    floating : bool
+        If the schema should support floating layouts and have a "_moorings" table.
 
     Returns
     -------
     bool
         If True the schema already has all the required system tables to upload layouts.
     """
-    TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines"]
+    if floating:
+        TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines", "_moorings"]
+    else:
+        TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines"]
+    
     valid_schema = True
     
     for table_name in TABLE_NAMES:
