@@ -1176,6 +1176,12 @@ class Layout:
         ValueError
             If boundary_id is None when upload_boundary=False. boundary_id is not a nullable field
             in the database.
+        
+        See Also
+        --------
+        layowt.layouts.utils.setup_database_schema : Function to setup a database schema with the necessary tables for layout upload.
+        layowt.layouts.layout.Layout.database_engine : Static method to create a database engine.
+        layowt.layouts.utils.database_engine : Function to create a database engine.
         """
         # Check schema exists in database 
         if schema not in sa.inspect(engine).get_schema_names():

@@ -117,11 +117,49 @@ def _valid_schema(engine: sa.engine.Engine, schema: str) -> bool:
     
     return valid_schema
 
-def setup_database_schema(engine: sa.engine.Engine, schema: str, epsg: int) -> None:
-        
-    # # Check schema exists in database (once we upgrade to SQLAlchemy 2.0)
-    # if not sa.inspect(engine).has_schema(schema):
-    #    raise KeyError(f"Schema {schema} does not exist.")
+def setup_database_schema(engine: sa.engine.Engine, schema: str, epsg: int, floating: bool = False) -> None:
+    """
+    Function to set up a database schema with the necessary system tables for layout upload.
+    
+    Creates the following tables and their relationships:
+        * _boundaries
+        * _constraint_scenarios
+        * _grids
+        * _layout_info
+        * _turbines
+        * _morings (if floating=True)
+
+    Parameters
+    ----------
+    engine : sa.engine.Engine
+        SQLAlchemy database engine.
+    schema : str
+        target schema within the database
+    epsg : int
+        EPSG code for the database geometry columns.
+    floating : bool
+        If True, also creates the "_moorings" table, by default False.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    KeyError
+        If schema does not exist in the database.
+    ValueError
+        If the passed EPSG code is not valid.
+    
+    See Also
+    --------
+    layowt.layouts.layout.Layout.to_database : Method to upload layouts to the database.
+    layowt.layouts.layout.Layout.database_engine : Static method to create a database engine.
+    layowt.layouts.utils.database_engine : Function to create a database engine.
+    """
+    # Check schema exists in database 
+    if schema not in sa.inspect(engine).get_schema_names():
+        raise KeyError(f"Schema {schema} does not exist in the database.")
     
     if _valid_schema(engine, schema):
         print(f'All the necessary layout system tables already exist in schema "{schema}".')
@@ -158,7 +196,7 @@ def _create_boundary_table(metadata: sa.schema.MetaData, schema: str, epsg: int)
         schema=schema
     )
     
-    return boundary_table
+    return None
     
 def _create_constraint_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
     
