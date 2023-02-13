@@ -361,8 +361,10 @@ def ts_ws_to_aep(ts: Iterable[float], pc: PowerCurve, ws_range: float = 5, ws_st
 
     Parameters
     ----------
+    ts : Iterable
+        Iterable containing wind speeds.
     pc : PowerCurve
-        PowerCurve used to calculate AEP
+        PowerCurve used to calculate AEP.
     ws_range : float, optional
         Range of wind speed % deviation to consider in the analysis, by default 5.
     ws_step : float, optional
