@@ -344,6 +344,159 @@ def weibull_ws_to_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, ws_ran
     
     return r.slope
 
+def ts_power(ts: pd.Series, pc: PowerCurve) -> pd.Series:
+    """
+    Function to calculate a power timeseries (in kW) from a horizontal wind speed timeseries \
+    and a PowerCurve.
+    
+    The wind speed timeseries is rounded to match the wind speed bins of the power curve. Then a
+    timeseries of power is created by looking up the wind speeds from the power curve performance
+    table.
+
+    Parameters
+    ----------
+    ts : pandas.Series
+        Timeseries containing wind speeds. The series index must be a pd.DatetimeIndex.
+    pc : PowerCurve
+        PowerCurve used to calculate the power timeseries.
+
+    Returns
+    -------
+    pandas.Series
+        Power timeseries in kW.
+
+    Raises
+    ------
+    TypeError
+        If ts is not a pd.Series or the index is not of type pd.DatetimeIndex.
+    
+    See Also
+    --------
+    layowt.wtg.power_curve.PowerCurve : LayOWt PowerCurve object.
+    """
+    # Check that ts is a Series
+    if not isinstance(ts, pd.Series):
+        raise TypeError(f"ts must be a Pandas Series. Type {type(ts)} passed.")
+    
+    # Check that index in a DatetimeIndex
+    if not isinstance(ts.index, pd.DatetimeIndex):
+        raise TypeError("Timeseries Index must be DatetimeIndex.")
+    
+    # Round using a custom base.
+    def _custom_round(x, base):
+        return round(x*1/base)*base
+    
+    # Wind speed resolution of the PowerCurve
+    base = round(pd.Series(pc.data.index).diff(periods=1).mode().values[0], 3)
+    
+    # Timeseries rounded to same resolution as the PowerCurve.
+    ts_round = _custom_round(ts, base)
+    
+    # Create a column for power an initialise with NaNs.
+    ts_kw = pd.Series(data=np.nan, index=ts.index, name="power_kw")
+    
+    # Create a wind speed filter between cut-in and cut-out
+    filt = (ts_round>=pc.attributes['cut_in']) & (ts_round <= pc.attributes['cut_out'])
+    
+    # Calculate the power timeseries in kW.
+    ts_kw.loc[filt] = pc.data['power'].loc[ts_round.loc[filt]].values
+    ts_kw.loc[~filt] = 0
+    
+    return ts_kw
+
+def ts_aep(ts: pd.Series, pc: PowerCurve, units: str = "GWh", leap_year: bool=True) -> float:
+    """
+    Function to calculate the Annual Energy Production (AEP) of a PowerCurve by using a Timeseries \
+    of wind speeds.
+    
+    The wind speed timeseries is rounded to match the wind speed bins of the power curve. Then a
+    timeseries of power is created by looking up the wind speeds from the power curve performance
+    table. The total energy of the timeseries if calculated by multiplying the power by the
+    temporal resolution in hours.
+    
+    The temporal resolution of the timeseries is deduced by finding the most common TimeDelta
+    between timestamps.
+    
+    The timeseries energy is then normalised to annual values by dividing by the number of years in
+    the timeseries and converted to the target units. The number of years is approximated by the
+    number of records times the temporal resolution (number of hours in the timeseries) divided by
+    the number of hours in a year.
+    
+    Note
+    ----
+    If the wind speed timeseries suffers from seasonality effects (e.g. incomplete years, data
+    gaps, etc.) then the AEP will show these effects. Make sure that only complete years are 
+    passed, or that the data is clear from seasonality effects prior to calculating AEP.
+
+    Parameters
+    ----------
+    ts : pandas.Series
+        Timeseries containing wind speeds. The series index must be a pd.DatetimeIndex.
+    pc : PowerCurve
+        PowerCurve used to calculate AEP.
+    units : str, optional
+        Units in which to report the calculated AEP. Must be one of "Wh", "kWh", "MWh", or "GWh" (case insensitive), by default "GWh".
+    leap_year : bool, optional
+        If True, the number of hours in a year used in the calculation is 8766, otherwise 8760, by default True.
+
+    Returns
+    -------
+    float
+        The AEP calculated for the PowerCurve and wind speed timeseries.
+
+    Raises
+    ------
+    TypeError
+        If ts is not a pd.Series or the index is not of type pd.DatetimeIndex.
+    ValueError
+        If units is not in ["gwh", "mwh", "kwh", "wh"].
+    
+    See Also
+    --------
+    layowt.wtg.power_curve.PowerCurve : LayOWt PowerCurve object.
+    """
+    # Check that ts is a Series
+    if not isinstance(ts, pd.Series):
+        raise TypeError(f"ts must be a Pandas Series. Type {type(ts)} passed.")
+    
+    # Check that index in a DatetimeIndex
+    if not isinstance(ts.index, pd.DatetimeIndex):
+        raise TypeError("Timeseries Index must be DatetimeIndex.")
+    
+    if units.lower() not in ["gwh", "mwh", "kwh", "wh"]:
+        raise ValueError(f'units must be in ["gwh", "mwh", "kwh", "wh"]. {units=} passed.')
+    
+    # Round using a custom base.
+    def _custom_round(x, base):
+        return round(x*1/base)*base
+    
+    # Calculate timeseries timestep in number of hours.
+    def _timestep(ts: pd.Series) -> float:
+        time_step = (ts.index.to_series().diff() / pd.Timedelta(value=1, unit='hour')).mode().values[0]
+        return time_step
+    
+    hours_in_year = {True: 8766, False: 8760}[leap_year]
+    
+    # Timeseries timestep in number of hours.
+    time_step = _timestep(ts)
+    
+    # Wind speed resolution of the PowerCurve
+    base = round(pd.Series(pc.data.index).diff(periods=1).mode().values[0], 3)
+    
+    # Energy unit conversion factor.
+    power_scale_factor = {"gwh": 1e6, "mwh": 1e3, "kwh": 1, "wh": 1e-3}[units.lower()]
+    
+    # Timeseries rounded to same resolution as the PowerCurve.
+    round_ts = _custom_round(ts, base)
+    
+    # Calculate the timeseries energy in kWh.
+    ts_energy = pc.data['power'].loc[round_ts[(round_ts>=pc.attributes['cut_in']) & (round_ts <= pc.attributes['cut_out'])]].sum() * time_step
+    
+    # Normalise energy into annual energy in the desired units.
+    aep = ts_energy / ((len(ts) * time_step) / hours_in_year) / power_scale_factor
+    
+    return aep
+
 def ts_ws_to_aep(ts: Iterable[float], pc: PowerCurve, ws_range: float = 5, ws_step: float = 0.1, how: str | None = None) -> float:
     """
     Function to calculate the approximate linear relationship between % changes in wind speed and \
@@ -384,6 +537,10 @@ def ts_ws_to_aep(ts: Iterable[float], pc: PowerCurve, ws_range: float = 5, ws_st
     ------
     ValueError
         If how not one of 'negative', 'positive', or 'both'.
+    
+    See Also
+    --------
+    layowt.wtg.power_curve.PowerCurve : LayOWt PowerCurve object.
     """
     def _custom_round(x, base=0.5):
         return round(x*1/base)*base
