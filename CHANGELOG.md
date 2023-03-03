@@ -17,7 +17,9 @@ Added the capability to upload layouts directly to the internal OW PostGIS Spati
 ### Added
 - {meth}`layowt.layouts.layout.Layout.database_engine` method to create an SQLAlchemy database engine.
 - {func}`layowt.layouts.utils.database_engine` method to create an SQLAlchemy database engine.
-- {func}`layowt.layouts.utils.create_database_schema` method to automatically set up a database schema with all the necessary sytem tables in order to upload layouts.
+- {func}`layowt.layouts.utils.setup_database_schema` method to automatically set up a database schema with all the necessary sytem tables in order to upload layouts.
+- {meth}`layowt.layouts.layout.Layout.to_database()` method to upload a Layout to the OW postGIS database.
+- {meth}`layowt.layouts.floating_layout.FloatingLayout.to_database()` method to upload a FloatingLayout to the OW postGIS database.
 - {func}`layowt.layouts.utils.coordinate_transform` function to transform coordinates between coordinate reference systems using EPSG codes.
 - {func}`layowt.layouts.utils.raster_from_postgis` function to transform load a raster datadet into memory from a PostGIS database.
 - {func}`layowt.aep.aep.ts_aep` function to calculate the AEP of a PowerCurve using a timeseries of wind speeds.
