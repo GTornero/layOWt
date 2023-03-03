@@ -1,6 +1,7 @@
 """ This module contains utility functions for the Layout class.
 """
 import urllib.parse
+import warnings
 from typing import Iterable
 
 import fiona
@@ -24,6 +25,45 @@ from layowt.grids.grid import Grid
 from layowt.layouts.floating_layout import FloatingLayout
 from layowt.layouts.layout import Layout
 
+
+def coordinate_transform(x: float | Iterable[float], y: float | Iterable[float], target_epsg: int, source_epsg: int=4326) -> tuple[float, float] | tuple[Iterable[float], Iterable[float]]:
+    """
+    Function to convert (x, y) coordinate arrays between coordinate reference systems i nthe EPSG database.
+
+    Parameters
+    ----------
+    x : float | Iterable[float]
+        Scalar or array of x-coordiantes to transform.
+    y : float | Iterable[float]
+        Scalar or array of y-coordiantes to transform.
+    target_epsg : int
+        EPSG code of the coordinate reference system for the output coordinates.
+    source_epsg : int, optional
+        EPSG code of the coordinate reference system for the input coordinates, by default 4326 (WGS84 Geographic).
+
+    Returns
+    -------
+    tuple[float, float] | tuple[Iterable[float], Iterable[float]]
+        Tuple of transformed (x,y) scalars or arrays.
+
+    Raises
+    ------
+    ValueError
+        If invalid EPSG code passed for source_epsg or target_epsg.
+    """
+    if not _is_epsg(source_epsg):
+        raise ValueError(f"Invalid EPSG code passed for {source_epsg=}.")
+    if not _is_epsg(target_epsg):
+        raise ValueError(f"Invalid EPSG code passed for {target_epsg=}.")
+    
+    source_crs = pyproj.CRS.from_epsg(source_epsg)
+    target_crs = pyproj.CRS.from_epsg(target_epsg)
+    
+    crs_transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
+    
+    x_trans, y_trans = crs_transformer.transform(xx=x, yy=y)
+
+    return(x_trans, y_trans)
 
 def geoms_from_shapefile(filepath: str, target_epsg: int | None = None) -> list:
     """
@@ -81,7 +121,7 @@ def database_engine(username: str, password: str, host: str = "ow-postgre.postgr
 
     Returns
     -------
-    sa.engine.Engine
+    sqlalchemy.engine.Engine
         SQLAlchemy database engine.
     """
     password = urllib.parse.quote_plus(password)
@@ -97,7 +137,7 @@ def _valid_schema(engine: sa.engine.Engine, schema: str, floating : bool) -> boo
 
     Parameters
     ----------
-    engine : sa.engine.Engine
+    engine : sqlalchemy.engine.Engine
         SQLAlchemy connection engine to the database.
     schema : str
         Schema name, by default schema
@@ -110,9 +150,9 @@ def _valid_schema(engine: sa.engine.Engine, schema: str, floating : bool) -> boo
         If True the schema already has all the required system tables to upload layouts.
     """
     if floating:
-        TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines", "_moorings"]
+        TABLE_NAMES = ["ow__layowt_boundaries", "ow__layowt_constraint_scenarios", "ow__layowt_grids", "ow__layowt_layout_info", "ow__layowt_turbines", "ow__layowt_moorings"]
     else:
-        TABLE_NAMES = ["_boundaries", "_constraint_scenarios", "_grids", "_layout_info", "_turbines"]
+        TABLE_NAMES = ["ow__layowt_boundaries", "ow__layowt_constraint_scenarios", "ow__layowt_grids", "ow__layowt_layout_info", "ow__layowt_turbines"]
     
     missing_tables = []
     valid_schema = True
@@ -128,16 +168,16 @@ def setup_database_schema(engine: sa.engine.Engine, schema: str, epsg: int, floa
     Function to set up a database schema with the necessary system tables for layout upload.
     
     Creates the following tables and their relationships:
-        * _boundaries
-        * _constraint_scenarios
-        * _grids
-        * _layout_info
-        * _turbines
-        * _morings (if floating=True)
+        * ow__layowt_boundaries
+        * ow__layowt_constraint_scenarios
+        * ow__layowt_grids
+        * ow__layowt_layout_info
+        * ow__layowt_turbines
+        * ow__layowt_morings (if floating=True)
 
     Parameters
     ----------
-    engine : sa.engine.Engine
+    engine : sqlalchemy.engine.Engine
         SQLAlchemy database engine.
     schema : str
         target schema within the database
@@ -192,12 +232,13 @@ def setup_database_schema(engine: sa.engine.Engine, schema: str, epsg: int, floa
 def _create_boundary_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
     
     boundary_table = sa.Table(
-        "_boundaries",
+        "ow__layowt_boundaries",
         metadata,
         sa.Column("boundary_id", sa.Integer, sa.Identity(always=True), primary_key=True),
         sa.Column("boundary_name", sa.String(50), nullable=False),
         sa.Column("geom", Geometry('MULTIPOLYGON', srid=epsg), nullable=False),
         sa.Column("type", sa.String(50), nullable=False),
+        sa.Column("data_source", sa.Text, nullable=False),
         sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
         sa.Column("created_by", sa.String(50), server_default=sa.func.current_user(), nullable=False),
         sa.Column("comments", sa.Text),
@@ -210,15 +251,18 @@ def _create_boundary_table(metadata: sa.schema.MetaData, schema: str, epsg: int)
 def _create_constraint_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
     
     constraint_table = sa.Table(
-        "_constraint_scenarios",
+        "ow__layowt_constraint_scenarios",
         metadata,
         sa.Column("constraint_id", sa.Integer, sa.Identity(always=True), primary_key=True),
         sa.Column("constraint_name", sa.String(50), nullable=False),
+        sa.Column("constraint_type", sa.String(7), nullable=False),
         sa.Column("geom", Geometry('MULTIPOLYGON', srid=epsg), nullable=False),
+        sa.Column("data_source", sa.Text, nullable=False),
         sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
         sa.Column("created_by", sa.String(50), server_default=sa.func.current_user(), nullable=False),
         sa.Column("comments", sa.Text),
         sa.Index(schema.lower() + "_constraint_id_idx", "constraint_id"),
+        sa.CheckConstraint("constraint_type IN ('turbine', 'mooring', 'anchor')", name=schema + "._constraint_type_check"),
         schema=schema
     )
     
@@ -227,7 +271,7 @@ def _create_constraint_table(metadata: sa.schema.MetaData, schema: str, epsg: in
 def _create_grid_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
 
     grid_table =sa.Table(
-        "_grids",
+        "ow__layowt_grids",
         metadata,
         sa.Column('grid_id', sa.Integer, sa.Identity(always=True), primary_key=True),
         sa.Column("geom", Geometry('MULTIPOINT', srid=epsg), nullable=False),
@@ -258,13 +302,19 @@ def _create_grid_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> 
 def _create_layout_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
     
     layout_table = sa.Table(
-        "_layout_info",
+        "ow__layowt_layout_info",
         metadata,
         sa.Column("layout_id", sa.Integer, sa.Identity(always=True), primary_key=True),
+        ##sa.Column("layout_name", sa.String(50)),
         sa.Column("n_wtg", sa.Integer, nullable=False),
-        sa.Column("grid_id", sa.Integer, sa.ForeignKey(schema + "._grids.grid_id", onupdate="CASCADE", ondelete="SET NULL")),
-        sa.Column("boundary_id", sa.Integer, sa.ForeignKey(schema + "._boundaries.boundary_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
-        sa.Column("constraint_id", sa.Integer, sa.ForeignKey(schema + "._constraint_scenarios.constraint_id", onupdate="CASCADE", ondelete="SET NULL")),
+        sa.Column("grid_id", sa.Integer, sa.ForeignKey(schema + ".ow__layowt_grids.grid_id", onupdate="CASCADE", ondelete="SET NULL")),
+        sa.Column("boundary_id", sa.Integer, sa.ForeignKey(schema + ".ow__layowt_boundaries.boundary_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
+        sa.Column("turbine_constraint_id", sa.Integer, sa.ForeignKey(schema + ".ow__layowt_constraint_scenarios.constraint_id", onupdate="CASCADE", ondelete="SET NULL")),
+        sa.Column("mooring_constraint_id", sa.Integer, sa.ForeignKey(schema + ".ow__layowt_constraint_scenarios.constraint_id", onupdate="CASCADE", ondelete="SET NULL")),
+        sa.Column("anchor_constraint_id", sa.Integer, sa.ForeignKey(schema + ".ow__layowt_constraint_scenarios.constraint_id", onupdate="CASCADE", ondelete="SET NULL")),
+        sa.Column("bathymetry_source", sa.Text),
+        sa.Column("bathymetry_datum", sa.String(3), server_default="msl"),
+        sa.Column("bathymetry_units", sa.String(6), server_default='m'),
         sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
         sa.Column("created_by", sa.String(50), server_default=sa.func.current_user(), nullable=False),
         sa.Column("base_case", sa.Boolean, server_default=sa.false()),
@@ -277,10 +327,10 @@ def _create_layout_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -
 def _create_turbine_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
     
     turbine_table = sa.Table(
-        "_turbines",
+        "ow__layowt_turbines",
         metadata,
         sa.Column("turbine_id", sa.Integer, sa.Identity(always=True), primary_key=True),
-        sa.Column("layout_id", sa.Integer, sa.ForeignKey(schema + "._layout_info.layout_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
+        sa.Column("layout_id", sa.Integer, sa.ForeignKey(schema + ".ow__layowt_layout_info.layout_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
         sa.Column("geom", Geometry('POINT', srid=epsg), nullable=False),
         sa.Column("bathymetry", sa.Float),
         sa.Column("date_created", sa.Date, server_default=sa.func.current_date(), nullable=False),
@@ -294,11 +344,11 @@ def _create_turbine_table(metadata: sa.schema.MetaData, schema: str, epsg: int) 
 def _create_mooring_table(metadata: sa.schema.MetaData, schema: str, epsg: int) -> sa.Table:
     
     mooring_table = sa.Table(
-        "_moorings",
+        "ow__layowt_moorings",
         metadata,
         sa.Column("mooring_id", sa.Integer, sa.Identity(always=True), primary_key=True),
-        sa.Column("layout_id", sa.Integer, sa.ForeignKey(schema + "._layout_info.layout_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
-        sa.Column("turbine_id", sa.Integer, sa.ForeignKey(schema + "._turbines.turbine_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
+        sa.Column("layout_id", sa.Integer, sa.ForeignKey(schema + ".ow__layowt_layout_info.layout_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
+        sa.Column("turbine_id", sa.Integer, sa.ForeignKey(schema + ".ow__layowt_turbines.turbine_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
         sa.Column("geom", Geometry('MULTILINESTRING', srid=epsg), nullable=False),
         sa.Column("radius", sa.Float, nullable=False),
         sa.Column("n_moorings", sa.Integer, nullable=False),
@@ -322,7 +372,7 @@ def geoms_from_postgis(
 
     Parameters
     ----------
-    engine: sa.engine.Engine
+    engine: sqlalchemy.engine.Engine
         SQLAlchemy database engine.
     schema : str
         name of the schema where the target table is located within the database.
@@ -367,6 +417,66 @@ def geoms_from_postgis(
     
     return geoms
 
+def raster_from_postgis(engine: sa.engine.Engine, schema: str, table: str, raster_col: str = "rast") -> rasterio.io.MemoryFile:
+    """
+    Loads a raster table from a PostGIS database into memory as a rasterio MemoryFile.
+
+    Parameters
+    ----------
+    engine: sqlalchemy.engine.Engine
+        SQLAlchemy database engine.
+    schema : str
+        Name of the schema where the target raster table is located within the database.
+    table : str
+        Name of the PostGIS raster table.
+    geom_col : str, optional
+        Name of the raster column within the table, by default "rast".
+
+    Returns
+    -------
+    rasterio.io.MemoryFile
+        rasterio MemoryFile raster in-memory file.
+    
+    See Also
+    --------
+    layowt.layouts.layout.Layout.apply_bathymetry : Method to apply an open bathymetry raster dataset to a Layout.
+    
+    Examples
+    --------
+    This example shows how to load raster data from a PostGIS database into memory and apply it to a
+    Layout using the apply_bathymetry method. Note that as a rasterio Memoryfile cannot be opened
+    by the rasterio.open() method, and instead needs to be opened using its own open() method, we
+    need to apply it to a layout using the apply_bathymetry method which works with already opened
+    rasterio datasets.
+    
+    >>> import layowt as ow
+    
+    >>> engine = ow.layouts.database_engine(username="user_name", password="password")
+    
+    >>> areas = ow.layouts.geoms_from_postgis(engine=engine, schema="US_BPW", table="_boundaries")
+    >>> exclusions = ow.layouts.geoms_from_postgis(engine=engine, schema="US_BPW", table="_constraint_scenarios")
+    >>> grid = ow.grids.Grid(scale=250, origin=(areas[0].centroid.x, areas[0].centroid.y))
+    >>> in_memory_raster = ow.layouts.utils.raster_from_postgis(engine=engine, schema="US_BPW", table="bathy")
+    
+    >>> layout = ow.layouts.Layout(grid=grid, areas=areas, exclusions=exclusions, epsg=32618)
+    
+    >>> with in_memory_raster.open() as memfile:
+    >>>    layout.apply_bathymetry(memfile, limits=(0, 56))
+    >>> layout.plot(show_bathy=True)
+    
+    .. image:: ../../../../_static/Layout_raster_from_postgis_example1.png
+    """
+    with engine.connect() as conn:
+        result = conn.execute(sa.text(f"""SELECT ST_AsGDALRaster(ST_Union({raster_col},1), 'GTiff') FROM "{schema}"."{table}";"""))
+    in_memory_raster = rasterio.io.MemoryFile(bytes(result.fetchone()[0]))
+    
+    with in_memory_raster.open() as f:
+        crs = f.crs
+    
+    if crs is None:
+        warnings.warn("Raster dataset from the PostGIS database does not have an assigned CRS.")
+    
+    return in_memory_raster
 
 def layouts_to_legacy_csv(layouts: list[Layout], filepath: str = "layouts.csv") -> None:
     """layouts_to_legacy_csv Function for backwards compatibility with legacy multitech code. Exports a lists of layout coordiantes into a .csv file compatible with legacy style OW jupyter notebook codes.
@@ -836,4 +946,17 @@ def hdf5_to_dataframe(filepath: str, start_id: int = 0, end_id: int | None = Non
                 return (coords_df, info_df)
 
 def _is_epsg(epsg: int) -> bool:
+    """
+    Function to check if an EPSG code is valid.
+
+    Parameters
+    ----------
+    epsg : int
+        _EPSG code to check.
+
+    Returns
+    -------
+    bool
+        IF EPSG code is valid.
+    """
     return str(epsg) in pyproj.database.get_codes("EPSG", pyproj.enums.PJType("CRS"))
