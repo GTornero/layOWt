@@ -30,6 +30,8 @@ Added the capability to upload layouts directly to the internal OW PostGIS Spati
 ### Changed
 - {meth}`layowt.layouts.layout.Layout.from_postgis` no longer requires username, password, database name, and host as inputs. Takes in an SQLAlchemy engine directly.
 - {func}`layowt.layouts.utils.geoms_from_postgis` no longer requires username, password, database name, and host as inputs. Takes in an SQLAlchemy engine directly.
+- {class}`layowt.layouts.layout_generators.GriddedLayoutGenerator` now accepts a rasterio MemoryFile type for the `bathymetry_path` argument.
+- {class}`layowt.layouts.layout_generators.FloatingGriddedLayoutGenerator` now accepts a rasterio MemoryFile type for the `bathymetry_path` argument.
 
 
 

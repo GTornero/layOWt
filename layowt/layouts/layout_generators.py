@@ -16,6 +16,16 @@ from layowt.layouts.layout import Layout
 from layowt.layouts.utils import layouts_to_hdf5
 
 
+def _open_raster(raster_file):
+    if isinstance(raster_file, str):
+        dataset = rasterio.open(raster_file, mode='r')
+    elif isinstance(raster_file, rasterio.io.MemoryFile):
+        dataset = raster_file.open()
+    else:
+        raise TypeError("Invalid type passed for the raster file.")
+    
+    return dataset
+
 class GriddedLayoutGenerator:
     """
     This class takes care of procedurally generating layouts by iterating through different combinations of Grid parameters. \
@@ -54,8 +64,8 @@ class GriddedLayoutGenerator:
         List of Shapely Polygons or MultiPolygons used to define the buildable areas. The generator wll take care to clip all layout positions to these areas. By default None.
     exclusions : list[Polygon  |  MultiPolygon], optional
         List of Shapely Polygons or MultiPolygons used to define exclusion zones where layout positions cannot be placed. The generator will take care to remove any layout positions that fall within these exclusion areas. By default None.
-    bathymetry_path : str
-        filepath of the bathymetry raster to load. Must be a format supported by the rasterio.open function.
+    bathymetry_path : str | rasterio.io.MemoryFile, optional
+        filepath of the bathymetry raster to load. Must be a format supported by the rasterio.open function or a rasterio.io.MemoryFile object. By default None.
     bathymetry_sign : str, optional
         sign in which the bathymetry file represents water depths. By default '-' if bathymetry values are negative. Pass '+' if bathymetry values are positive.
     bathymetry_band : int, optional
@@ -77,7 +87,7 @@ class GriddedLayoutGenerator:
         Attribute: List of buildable area geometries of the layouts.
     exclusions : list[Polygon | MultiPolygon]
         Attribute: List of exclusion area geometries of the layouts.
-    bathymetry_path : str
+    bathymetry_path : str | rasterio.io.MemoryFile
         Attribute: filepath of the bathymetry dataset.
     bathymetry_limits: tuple(float, float)
         Attribute: Tuple of minimum and maximum allowable bathymetry values for valid layout positions.
@@ -102,7 +112,7 @@ class GriddedLayoutGenerator:
                  epsg: int | None = None,
                  areas: list[Polygon | MultiPolygon] | None = None,
                  exclusions: list[Polygon | MultiPolygon] | None = None,
-                 bathymetry_path: str | None = None,
+                 bathymetry_path: str | rasterio.io.MemoryFile | None = None,
                  bathymetry_sign: str = "-",
                  bathymetry_band: int = 1,
                  bathymetry_limits: tuple[float, float] = (0., 60.),
@@ -253,7 +263,7 @@ class GriddedLayoutGenerator:
         hdf5_id_counter = 0
         # TODO work on creating a parallel/multithreaded compution option for this function.
         if self.bathymetry_path is not None:
-            with rasterio.open(self.bathymetry_path, mode='r') as dataset:
+            with _open_raster(self.bathymetry_path) as dataset:
                 for counter, grid in enumerate(grid_gen, start=1):
                     layout = Layout(grid, areas=self.areas, exclusions=self.exclusions, epsg=self.epsg)
                     
@@ -344,8 +354,8 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
         List of Shapely Polygons or MultiPolygons used to define the buildable areas. The generator wll take care to clip all layout positions to these areas. By default None.
     exclusions : list[Polygon  |  MultiPolygon], optional
         List of Shapely Polygons or MultiPolygons used to define exclusion zones where layout positions cannot be placed. The generator will take care to remove any layout positions that fall within these exclusion areas. By default None.
-    bathymetry_path : str
-        filepath of the bathymetry raster to load. Must be a format supported by the rasterio.open function.
+    bathymetry_path : str | rasterio.io.MemoryFile, optional
+        filepath of the bathymetry raster to load. Must be a format supported by the rasterio.open function or a rasterio.io.MemoryFile object. By default None.
     bathymetry_sign : str, optional
         sign in which the bathymetry file represents water depths. By default '-' if bathymetry values are negative. Pass '+' if bathymetry values are positive.
     bathymetry_band : int, optional
@@ -407,7 +417,7 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
         Attribute: List of buildable area geometries of the layouts.
     exclusions : list[Polygon | MultiPolygon]
         Attribute: List of exclusion area geometries of the layouts.
-    bathymetry_path : str
+    bathymetry_path : str | rasterio.io.MemoryFile
         Attribute: filepath of the bathymetry dataset.
     bathymetry_limits: tuple(float, float)
         Attribute: Tuple of minimum and maximum allowable bathymetry values for valid layout positions.
@@ -477,7 +487,7 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
                  epsg: int | None = None,
                  areas: list[Polygon | MultiPolygon] | None = None,
                  exclusions: list[Polygon | MultiPolygon] | None = None,
-                 bathymetry_path: str | None = None,
+                 bathymetry_path: str | rasterio.io.MemoryFile | None = None,
                  bathymetry_sign: str = "-",
                  bathymetry_band: int = 1,
                  bathymetry_limits: tuple[float, float] = (0., 60.),
@@ -578,7 +588,7 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
             moorings = True
         
         if self.bathymetry_path is not None:
-            with rasterio.open(self.bathymetry_path, mode='r') as dataset:
+            with _open_raster(self.bathymetry_path) as dataset:
                 for counter, grid in enumerate(grid_gen, start=1):
                     layout = FloatingLayout(grid, areas=self.areas, exclusions=self.exclusions, epsg=self.epsg)
                     
