@@ -21,7 +21,8 @@ Added the capability to upload layouts directly to the internal OW PostGIS Spati
 - {meth}`layowt.layouts.layout.Layout.to_database()` method to upload a Layout to the OW postGIS database.
 - {meth}`layowt.layouts.floating_layout.FloatingLayout.to_database()` method to upload a FloatingLayout to the OW postGIS database.
 - {func}`layowt.layouts.utils.coordinate_transform` function to transform coordinates between coordinate reference systems using EPSG codes.
-- {func}`layowt.layouts.utils.raster_from_postgis` function to transform load a raster datadet into memory from a PostGIS database.
+- {func}`layowt.layouts.utils.raster_from_postgis` function to load a raster dataset into memory from a PostGIS database.
+- {func}`layowt.layouts.utils.geoms_from_database` function to load area or exclusion geometries from the OW Energy assessment PostGIS database table system.
 - {func}`layowt.aep.aep.ts_aep` function to calculate the AEP of a PowerCurve using a timeseries of wind speeds.
 - {func}`layowt.aep.aep.ts_power` function to calculate a power timeseries for a PowerCurve using a timeseries of horiztonal wind speeds.
 

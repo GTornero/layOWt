@@ -13,11 +13,12 @@ import pyproj
 import rasterio
 import sqlalchemy as sa
 from geoalchemy2 import Geometry
+from geoalchemy2.shape import to_shape
 from osgeo import gdal
 from rasterio.crs import CRS
 from rasterio.errors import CRSError
 from rasterio.warp import Resampling, calculate_default_transform, reproject
-from shapely.geometry import MultiPoint, shape
+from shapely.geometry import MultiPoint, MultiPolygon, Polygon, shape
 from shapely.ops import transform
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION
 
@@ -359,6 +360,75 @@ def _create_mooring_table(metadata: sa.schema.MetaData, schema: str, epsg: int) 
     
     return mooring_table
 
+def _get_epsg_from_postgis(engine, schema: str, table: str, geom_col: str) -> int:
+    metadata = sa.MetaData()
+    postgis_table = sa.Table(table, metadata, autoload_with=engine, schema=schema)
+    geom_col = getattr(postgis_table.c, geom_col) 
+    get_srid = sa.select(sa.func.ST_SRID(geom_col))
+    
+    with engine.connect() as conn:
+        result = conn.execute(get_srid)
+    
+    return result.fetchone()[0]
+
+def geoms_from_database(engine: sa.engine.Engine, schema: str, geom_type: str, geom_id: int, target_epsg: int = None) -> list[Polygon | MultiPolygon]:
+    """
+    Function to fetch area or exclusion geometries directly from OW's PostGIS database system.
+    
+    Area geometries will be fetched from the "ow__layowt_boundaries" tables and exclusion
+    geometries will be fetched from the "ow__layowt_constraint_scenarios" tables.
+
+    Parameters
+    ----------
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy database engine.
+    schema : str
+        Name of the schema where the target table is located within the database.
+    geom_type : str
+        Type of the geometry to load. Must be one of 'area' or 'exclusion', casi insensitive.
+    geom_id : int
+        Primary key id of the geometry within its table.
+    target_epsg : int, optional
+        `EPSG <https://epsg.io/>`_ code of the target projection for the geometries to be loaded in. By default, None.
+
+    Returns
+    -------
+    list[Polygon | MultiPolygon]
+        List containing area or exlcusion Shapely geometry.
+
+    Raises
+    ------
+    ValueError
+        If geom_type received a value other than 'area' or 'exclusion'.
+    CRSError
+        If an invalid EPSG code is passed to target_epsg.
+    """
+    if geom_type.lower() not in ['area', 'exclusion']:
+        raise ValueError(f"Invalid value for geom_type. Must be 'area' or 'exclusion'. {geom_type=} passed.")
+    
+    metadata = sa.MetaData()
+    if geom_type.lower() == 'area':
+        db_table = sa.Table("ow__layowt_boundaries", metadata, autoload_with=engine, schema=schema)
+        select_stmt = sa.select(db_table.c.geom).where(db_table.c.boundary_id==geom_id)
+    else:
+        db_table = sa.Table("ow__layowt_constraint_scenarios", metadata, autoload_with=engine, schema=schema)
+        select_stmt = sa.select(db_table.c.geom).where(db_table.c.constraint_id==geom_id)
+    
+    with engine.connect() as conn:
+        result = conn.execute(select_stmt)
+    
+    geom = to_shape(result.fetchone()[0])
+    
+    if target_epsg is not None:
+        if not _is_epsg(target_epsg):
+            raise CRSError(f"{target_epsg=} not a valid EPSG code.")
+        src_crs = _get_epsg_from_postgis(engine=engine, schema=schema, table=db_table.name, geom_col="geom")
+        target_crs = pyproj.CRS("EPSG:" + str(target_epsg))
+        crs_transformer = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
+        geom = transform(crs_transformer.transform, geom)
+    
+    return [geom]
+
 def geoms_from_postgis(
     engine: sa.engine.Engine,
     schema: str,
@@ -389,6 +459,11 @@ def geoms_from_postgis(
     -------
     list[Geometry]
         list of shapely geometries contained in the PostGIS table.
+    
+    Raises
+    ------
+    CRSError
+        If an invalid EPSG code is passed to target_epsg.
     """
     # TODO: Should change the geopandas method from_postgis to read_postgis
     new_engine = sa.create_engine(engine.url, echo=False, future=False)
