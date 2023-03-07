@@ -10,7 +10,7 @@ import geopandas as gp
 import numpy as np
 import pyproj
 import sqlalchemy as sa
-from geoalchemy2.shape import from_shape
+from geoalchemy2.shape import from_shape, to_shape
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from rasterio.errors import CRSError
@@ -132,6 +132,89 @@ class FloatingLayout(Layout):
         self.mooring_area = None
         self.mooring_exclusions = None
         self.mooring_buffers = None
+    
+    @classmethod
+    def from_database(
+        cls,
+        engine: sa.engine.Engine,
+        schema: str,
+        layout_id: int
+    ) -> "FloatingLayout":
+        """
+        Alternate constructor that creates a FloatingLayout from the OW PostGIS Energy Assessment database \
+        by specifying the schema and layout_id.
+        
+        The FloatingLayout instance will be initiated with the turbine, mooring, grid, area, and
+        exclusion geometries from the database. The target schema must have been set up using the
+        :func:`layowt.layouts.utils.setup_database_schema` function.
+
+        Parameters
+        ----------
+        engine : sqlalchemy.engine.Engine
+            SQLAlchemy database engine.
+        schema : str
+            Name of the schema where the target layout is located within the database.
+        layout_id : int
+            layout_id of the Layout within the "ow__layowt_layout_info" table.
+
+        Returns
+        -------
+        FloatingLayout
+            FloatingLayout loaded from the database.
+        
+        Raises
+        ------
+        KeyError
+            If layout_id is not found in the database.
+        
+        See Also
+        --------
+        layowt.layouts.utils.setup_database_schema : Function to setup a database schema with the necessary tables for layout upload.
+        layowt.layouts.layout.Layout.database_engine : Static method to create a database engine.
+        layowt.layouts.utils.database_engine : Function to create a database engine.
+        """
+        floating_layout = super().from_database(engine=engine, schema=schema, layout_id=layout_id)
+        
+        metadata = sa.MetaData()
+        info_table = sa.Table("ow__layowt_layout_info", metadata, autoload_with=engine, schema=schema)
+        select_layout = sa.select(info_table).where(info_table.c.layout_id==layout_id)
+        
+        with engine.connect() as conn:
+            layout_info = conn.execute(select_layout).fetchone()
+            
+            if layout_info["mooring_constraint_id"] is not None:
+                constraint_table = sa.Table("ow__layowt_constraint_scenarios", metadata, autoload_with=engine, schema=schema)
+                select_constraint = sa.select(constraint_table.c.geom).where(constraint_table.c.constraint_id==layout_info["mooring_constraint_id"])
+                floating_layout.mooring_exclusions = to_shape(conn.execute(select_constraint).fetchone()[0])
+            
+            #TODO: Add clause for anchor-only constraints once implemented
+            mooring_table = sa.Table("ow__layowt_moorings", metadata, autoload_with=engine, schema=schema)
+            select_moorings = sa.select(mooring_table).where(mooring_table.c.layout_id==layout_info["layout_id"])
+            moorings = conn.execute(select_moorings).fetchall()
+            
+            if moorings:
+                floating_layout.n_moorings = moorings[0]["n_moorings"]
+                floating_layout.mooring_geom = [to_shape(row["geom"]) for row in moorings]
+                floating_layout.platform_bearing = moorings[0]["platform_bearing"]
+                floating_layout.mooring_bearings = np.array(moorings[0]["mooring_bearings"])
+                floating_layout.mooring_offsets = [tuple(item) for item in moorings[0]["mooring_offsets"]]
+                floating_layout.mooring_radii = np.array([row["radius"] for row in moorings])
+                
+                origins = []
+                anchors = []
+                for platform in floating_layout.mooring_geom:
+                    platform_origins = []
+                    platform_anchors = []
+                    for line in platform.geoms:
+                        platform_origins.append((line.boundary.geoms[0].x, line.boundary.geoms[0].y))
+                        platform_anchors.append((line.boundary.geoms[1].x, line.boundary.geoms[1].y))
+                    origins.append(platform_origins)
+                    anchors.append(platform_anchors)
+                
+                floating_layout.mooring_origins = origins
+                floating_layout.mooring_anchors = anchors
+        
+        return floating_layout
     
     def _set_platform_bearing(self, platform_bearing: float | None) -> None:
         """
@@ -1198,7 +1281,8 @@ class FloatingLayout(Layout):
                                                "radius": float(self.mooring_radii[i]),
                                                "n_moorings": self.n_moorings,
                                                "platform_bearing": self.platform_bearing,
-                                               "mooring_bearings": [float(x) for x in self.mooring_bearings]})
+                                               "mooring_bearings": [float(x) for x in self.mooring_bearings],
+                                               "mooring_offsets": self.mooring_offsets})
                 
                 insert_moorings = sa.insert(mooring_table, moorings_to_insert)
                 result = conn.execute(insert_moorings)

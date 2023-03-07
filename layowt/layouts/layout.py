@@ -13,7 +13,7 @@ import pandas as pd
 import pyproj
 import rasterio
 import sqlalchemy as sa
-from geoalchemy2.shape import from_shape
+from geoalchemy2.shape import from_shape, to_shape
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from rasterio.errors import CRSError
@@ -356,6 +356,101 @@ class Layout:
         layout = cls(epsg=layout_epsg)
         layout._raw_geom = geom
         layout.geom = geom
+        return layout
+    
+    @classmethod
+    def from_database(
+        cls,
+        engine: sa.engine.Engine,
+        schema: str,
+        layout_id: int
+    ) -> "Layout":
+        """
+        Alternate constructor that creates a Layout from the OW PostGIS Energy Assessment database \
+        by specifying the schema and layout_id.
+        
+        The Layout instance will be initiated with the turbine, grid, area, and exclusion
+        geometries from the database. The target schema must have been set up using the 
+        :func:`layowt.layouts.utils.setup_database_schema` function.
+
+        Parameters
+        ----------
+        engine : sqlalchemy.engine.Engine
+            SQLAlchemy database engine.
+        schema : str
+            Name of the schema where the target layout is located within the database.
+        layout_id : int
+            layout_id of the Layout within the "ow__layowt_layout_info" table.
+
+        Returns
+        -------
+        Layout
+            Layout loaded from the database.
+        
+        Raises
+        ------
+        KeyError
+            If layout_id is not found in the database.
+        
+        See Also
+        --------
+        layowt.layouts.utils.setup_database_schema : Function to setup a database schema with the necessary tables for layout upload.
+        layowt.layouts.layout.Layout.database_engine : Static method to create a database engine.
+        layowt.layouts.utils.database_engine : Function to create a database engine.
+        """
+        metadata = sa.MetaData()
+        
+        info_table = sa.Table("ow__layowt_layout_info", metadata, autoload_with=engine, schema=schema)
+        turbine_table = sa.Table("ow__layowt_turbines", metadata, autoload_with=engine, schema=schema)
+        boundary_table = sa.Table("ow__layowt_boundaries", metadata, autoload_with=engine, schema=schema)
+
+        select_layout = sa.select(info_table).where(info_table.c.layout_id==layout_id)
+        select_turbines = sa.select(sa.func.ST_Union(turbine_table.c.geom)).where(turbine_table.c.layout_id==layout_id)
+
+
+        layout_epsg = _get_epsg_from_postgis(engine=engine, schema=schema, table="ow__layowt_turbines", geom_col="geom") 
+
+        with engine.connect() as conn:
+            layout = cls(epsg=layout_epsg) # change me to cls for the class method
+            layout._constrained = True
+            
+            # 1 read the layout_info column
+            layout_info = conn.execute(select_layout).fetchone()
+            if layout_info is None:
+                raise KeyError(f"Layout with layout_id {layout_id} not found.")
+            # 2 read the turbine geometries
+            layout.geom = to_shape(conn.execute(select_turbines).fetchone()[0])
+            # 4 read the boundary geometry
+            select_boundary = sa.select(boundary_table.c.geom).where(boundary_table.c.boundary_id==layout_info["boundary_id"])
+            layout.area = to_shape(conn.execute(select_boundary).fetchone()[0])
+            # 3 check the grid and load the parameters
+            if layout_info["grid_id"] is not None:
+                grid_table = sa.Table("ow__layowt_grids", metadata, autoload_with=engine, schema=schema)
+                select_grid = sa.select(grid_table).where(grid_table.c.grid_id==layout_info["grid_id"])
+                grid_info = conn.execute(select_grid).fetchone()
+                layout.grid = Grid(n_rows=grid_info["n_rows"],
+                                    n_cols=grid_info["n_cols"],
+                                    row_step=grid_info["row_step"],
+                                    col_step=grid_info["col_step"],
+                                    row_offset=grid_info["row_offset"],
+                                    col_offset=grid_info["col_offset"],
+                                    angle=grid_info["angle"],
+                                    x_shear=grid_info["x_shear"],
+                                    y_shear=grid_info["y_shear"],
+                                    origin=(grid_info["origin_x"], grid_info["origin_y"]),
+                                    scale=grid_info["scale"]
+                                    )
+                # 3.1 assign the raw_geom as the grid geom
+                layout._raw_geom = to_shape(grid_info["geom"])
+            else:
+                # 3.2 if the layout has no grid, turbines geom is the raw_geom
+                layout._raw_geom = layout.geom
+            # 5 check if the layout has turbine constraints and read the geometry
+            if layout_info["turbine_constraint_id"] is not None:
+                constraint_table = sa.Table("ow__layowt_constraint_scenarios", metadata, autoload_with=engine, schema=schema)
+                select_constraint = sa.select(constraint_table.c.geom).where(constraint_table.c.constraint_id==layout_info["turbine_constraint_id"])
+                layout.exclusion = to_shape(conn.execute(select_constraint).fetchone()[0])
+        
         return layout
 
     def is_constrained(self) -> bool:
@@ -984,7 +1079,6 @@ class Layout:
 
         return fig, ax
 
-
     def to_shapefile(self, filepath: str, epsg: int = None) -> None:
         """to_shapefile Saves the Layout Point geometries as a Shapefile.
 
@@ -1020,7 +1114,6 @@ class Layout:
             for idx, geom in enumerate(self.geom.geoms, start=1):  # type: ignore
                 new_file.write({"geometry": mapping(geom), "properties": {"id": idx}})
     
-    
     @staticmethod
     def database_engine(username: str, password: str, host: str = "ow-postgre.postgres.database.azure.com", db_name: str = "corp_ta_ea", dialect: str = "postgresql", echo: bool = False) -> sa.engine.Engine:
         """
@@ -1053,40 +1146,6 @@ class Layout:
         engine = sa.create_engine(con_str, echo=echo, future=True)
         
         return engine
-    
-    
-    def to_postgis(
-        self,
-        engine: sa.engine.Engine,
-        schema: str,
-        table: str,
-        **kwargs,
-    ):
-        """to_postgis Not yet implemented.
-
-        Parameters
-        ----------
-        username : str
-            _description_
-        password : str
-            _description_
-        schema : str
-            _description_
-        table : str
-            _description_
-        host : str, optional
-            _description_, by default "ow-postgre.postgres.database.azure.com"
-        db_name : str, optional
-            _description_, by default "corp_ta_ea"
-
-        Raises
-        ------
-        NotImplementedError
-            Method not yet implemented.
-        """
-        # TODO write method to save layout as a PostGIS table.
-        raise NotImplementedError("Method not yet implemented.")
-    
     
     def to_database(
         self,
@@ -1412,3 +1471,14 @@ def _is_epsg(epsg: int) -> bool:
         Ture if valid EPSG number.
     """
     return str(epsg) in pyproj.database.get_codes("EPSG", pyproj.enums.PJType("CRS"))
+
+def _get_epsg_from_postgis(engine, schema: str, table: str, geom_col: str) -> int:
+    metadata = sa.MetaData()
+    postgis_table = sa.Table(table, metadata, autoload_with=engine, schema=schema)
+    geom_col = getattr(postgis_table.c, geom_col) 
+    get_srid = sa.select(sa.func.ST_SRID(geom_col))
+    
+    with engine.connect() as conn:
+        result = conn.execute(get_srid)
+    
+    return result.fetchone()[0]
