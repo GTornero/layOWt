@@ -355,6 +355,7 @@ def _create_mooring_table(metadata: sa.schema.MetaData, schema: str, epsg: int) 
         sa.Column("n_moorings", sa.Integer, nullable=False),
         sa.Column("platform_bearing", sa.Float, nullable=False),
         sa.Column("mooring_bearings", ARRAY(sa.Float, as_tuple=True, dimensions=1)),
+        sa.Column("mooring_offsets", ARRAY(sa.Float, as_tuple=True, dimensions=2)),
         schema=schema
     )
     
