@@ -7,8 +7,8 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/GTornero/layOWt) 
 # About
 
-**Documentation:** [ReadTheDocs](https://ocean-winds-layowt.readthedocs-hosted.com/en/latest/)
-[![Documentation Status](https://readthedocs.com/projects/ocean-winds-layowt/badge/?version=latest&token=09b7c4c3682104d178136f86f8c4c531c7ea9fdb54da80e2fffe74e061043a35)](https://ocean-winds-layowt.readthedocs-hosted.com/en/latest/?badge=latest)
+**Documentation:** [ReadTheDocs](https://ocean-winds-layowt.readthedocs-hosted.com/)
+[![Documentation Status](https://readthedocs.com/projects/ocean-winds-layowt/badge/?version=latest&token=eacc8d4468613e6a27a92db4975cce3138e002e0d63b18002785bc8d57af1ab7)](https://ocean-winds-layowt.readthedocs-hosted.com/?badge=latest)
 
 **License:** N/A
 
