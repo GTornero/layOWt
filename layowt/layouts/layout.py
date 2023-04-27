@@ -430,13 +430,13 @@ class Layout:
                 grid_info = conn.execute(select_grid).fetchone()
                 layout.grid = Grid(n_rows=grid_info["n_rows"],
                                     n_cols=grid_info["n_cols"],
-                                    row_step=grid_info["row_step"],
-                                    col_step=grid_info["col_step"],
+                                    row_step=float(grid_info["row_step"]),
+                                    col_step=float(grid_info["col_step"]),
                                     row_offset=grid_info["row_offset"],
                                     col_offset=grid_info["col_offset"],
-                                    angle=grid_info["angle"],
-                                    x_shear=grid_info["x_shear"],
-                                    y_shear=grid_info["y_shear"],
+                                    angle=float(grid_info["angle"]),
+                                    x_shear=float(grid_info["x_shear"]),
+                                    y_shear=float(grid_info["y_shear"]),
                                     origin=(grid_info["origin_x"], grid_info["origin_y"]),
                                     scale=grid_info["scale"]
                                     )

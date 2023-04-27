@@ -8,6 +8,29 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
+## [0.5.1] - [add date]
+ 
+LayOWt Version 0.5.1
+
+Bugfixes. 
+ 
+### Added
+
+
+ 
+### Changed
+
+
+
+
+### Fixed
+- Fixed data types of grid parameters when loading a layout from the database. Previously many parameters loaded as SQLAlchemy Decimal type. Now all are base python floats.
+
+
+
+=======================================================================
+
+=======================================================================
 ## [0.5.0] - [2023-01-23]
  
 LayOWt Version 0.5.0
