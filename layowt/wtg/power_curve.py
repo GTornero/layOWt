@@ -409,7 +409,7 @@ class PowerCurve:
             power.append(float(data_point.attrib["PowerOutput"]) / 1000)
             ct.append(float(data_point.attrib["ThrustCoEfficient"]))
         
-        rated_ws = wind_speed[wind_speed.index(next(filter(lambda x: x!=0, wind_speed)))]
+        rated_ws = wind_speed[np.argmax(power)]
         
         pc = cls(wind_speed=wind_speed,
                  power=power,
