@@ -383,8 +383,9 @@ def ts_power(ts: pd.Series, pc: PowerCurve) -> pd.Series:
         raise TypeError("Timeseries Index must be DatetimeIndex.")
     
     # Round using a custom base.
-    def _custom_round(x, base):
-        return round(x*1/base)*base
+    def _custom_round(number, denominator=0.5):
+        rounded_number = round(number / denominator) * denominator
+        return rounded_number
     
     # Wind speed resolution of the PowerCurve
     base = round(pd.Series(pc.data.index).diff(periods=1).mode().values[0], 3)
@@ -467,8 +468,9 @@ def ts_aep(ts: pd.Series, pc: PowerCurve, units: str = "GWh", leap_year: bool=Tr
         raise ValueError(f'units must be in ["gwh", "mwh", "kwh", "wh"]. {units=} passed.')
     
     # Round using a custom base.
-    def _custom_round(x, base):
-        return round(x*1/base)*base
+    def _custom_round(number, denominator=0.5):
+        rounded_number = round(number / denominator) * denominator
+        return rounded_number
     
     # Calculate timeseries timestep in number of hours.
     def _timestep(ts: pd.Series) -> float:
@@ -542,8 +544,9 @@ def ts_ws_to_aep(ts: Iterable[float], pc: PowerCurve, ws_range: float = 5, ws_st
     --------
     layowt.wtg.power_curve.PowerCurve : LayOWt PowerCurve object.
     """
-    def _custom_round(x, base=0.5):
-        return round(x*1/base)*base
+    def _custom_round(number, denominator=0.5):
+        rounded_number = round(number / denominator) * denominator
+        return rounded_number
 
     if how is not None:
         if how.lower() not in ['negative', 'positive', 'both']:

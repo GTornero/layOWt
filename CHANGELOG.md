@@ -26,7 +26,7 @@ Bugfixes.
 ### Fixed
 - Fixed data types of grid parameters when loading a layout from the database. Previously many parameters loaded as SQLAlchemy Decimal type. Now all are base python floats.
 - FIxed erroneous read of rated wind speed when loading a {class}`layowt.wtg.power_curve.PowerCurve` using the {meth}`layowt.wtg.power_curve.PowerCurve.from_wtg()` constructor method.
-
+- Fixed bug in AEP functions where teh wind speed binning was not correct.
 
 =======================================================================
 
