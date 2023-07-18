@@ -90,6 +90,8 @@ intersphinx_mapping = {
     "rasterio": ("https://rasterio.readthedocs.io/en/latest/", None),
     "sqlalchemy": ("https://docs.sqlalchemy.org/en/14/", None),
     "geopandas": ("https://geopandas.org/en/stable/", None),
+    "contextly": ("https://contextily.readthedocs.io/en/latest/", None),
+    "xyzservices": ("https://xyzservices.readthedocs.io/en/stable/", None),
 }
 
 # Hoverxref Extension
@@ -106,6 +108,8 @@ hoverxref_intersphinx = [
     "rasterio",
     "sqlalchemy",
     "geopandas",
+    "contextly",
+    "xyzservices",
 ]
 hoverxref_domains = ["py"]
 hoverxref_role_types = {
