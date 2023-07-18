@@ -19,7 +19,7 @@ Bugfixes.
 
  
 ### Changed
-
+- {meth}`layowt.layouts.layout.Layout.plot` method now accepts the `basemap` and `basemap_provider` arguments to plot basemaps.
 
 
 

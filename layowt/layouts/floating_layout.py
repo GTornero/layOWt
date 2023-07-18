@@ -10,6 +10,7 @@ import geopandas as gp
 import numpy as np
 import pyproj
 import sqlalchemy as sa
+import xyzservices
 from geoalchemy2.shape import from_shape, to_shape
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -856,7 +857,8 @@ class FloatingLayout(Layout):
         
         return False
 
-    def plot(self, ax: Axes | None = None, figsize: tuple = (8, 6), show_bathy: bool = False) -> tuple[Figure, Axes]:
+    def plot(self, ax: Axes | None = None, figsize: tuple = (8, 6), show_bathy: bool = False, basemap: bool = False, basemap_provider: str | xyzservices.TileProvider | None = None
+             ) -> tuple[Figure, Axes]:
         """
         Plots the FloatingLayout turbine and mooring geometries, as well as areas and exclusions.
 
@@ -868,6 +870,16 @@ class FloatingLayout(Layout):
             Figure size in inches in (width, height) format, by default (8, 6)
         show_bathy : bool, optional
             If True, render the bathymetry onto the plot. Layout must have a loaded bathymetry filepath.
+        basemap : bool, optional
+            If True, render a basemap onto the plot. Requires an internet connection.
+        basemap_provider : str | xyzservices.TileProvider | None, optional
+            The tile source: web tile provider, a valid input for a query of a
+            :class:`xyzservices.TileProvider` by a name from ``xyzservices.providers`` or
+            path to local file. The web tile provider can be in the form of a
+            :class:`xyzservices.TileProvider` object or a URL. The placeholders for the XYZ
+            in the URL need to be `{x}`, `{y}`, `{z}`, respectively. For local file paths,
+            the file is read with `rasterio` and all bands are loaded into the basemap.
+            The default is: Stamen Terrain web tiles.
 
         Returns
         -------
@@ -882,8 +894,13 @@ class FloatingLayout(Layout):
         Caution
         ----
         Performance can be seriously reduced if show_bathy is set to true and high resolution bathymetry data is to be rendered.
+        
+        See Also
+        --------
+        xyzservices.TileProvider : xyzservices TileProvider object
+        contextly.providers : contextly wrapper of xzyservices TileProvider object
         """
-        fig, ax = super().plot(ax=ax, figsize=figsize, show_bathy=show_bathy)
+        fig, ax = super().plot(ax=ax, figsize=figsize, show_bathy=show_bathy, basemap=basemap, basemap_provider=basemap_provider)
         if self.mooring_geom is not None:
             gp.GeoSeries(self.mooring_geom).plot(ax=ax, color='black')
         
