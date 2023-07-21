@@ -92,6 +92,7 @@ intersphinx_mapping = {
     "geopandas": ("https://geopandas.org/en/stable/", None),
     "contextly": ("https://contextily.readthedocs.io/en/latest/", None),
     "xyzservices": ("https://xyzservices.readthedocs.io/en/stable/", None),
+    "coastlib": ("https://coastlib.readthedocs.io/en/latest/", None),
 }
 
 # Hoverxref Extension
@@ -110,6 +111,7 @@ hoverxref_intersphinx = [
     "geopandas",
     "contextly",
     "xyzservices",
+    "coastlib",
 ]
 hoverxref_domains = ["py"]
 hoverxref_role_types = {
