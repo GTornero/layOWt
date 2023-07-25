@@ -7,7 +7,7 @@ name = "layowt"
 description = "Multi-disciplinary Offshore Wind Farm Layout Optimisation in Python."
 authors = [{name = "Guillermo Tornero", email = "gtornerodediego@gmail.com"}]
 requires-python = ">=3.10"
-version = "0.5.0"
+version = "0.6.0"
 readme = "README.md"
 dependencies = [
     "matplotlib==3.6.2",
@@ -24,7 +24,7 @@ dependencies = [
     "pyodbc==4.0.34",
     "h5py==3.7.0",
     "contextily==1.3.0",
-    "coastlibe==1.0.0",
+    "coastlib==1.0.0",
 ]
 
 [project.optional-dependencies]
