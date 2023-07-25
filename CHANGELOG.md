@@ -8,18 +8,44 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
-## [0.5.1] - [2023-07-21]
+## [0.6.0] - [2023-07-21]
  
-LayOWt Version 0.5.1
+LayOWt Version 0.6.0
 
-Bugfixes. 
+New Metocean Module!
  
 ### Added
-
+- {mod}`layowt.metocean`: Metocean module:
+    - {class}`layowt.metocean.wave.Wave` : Wave class using Fenton's stream function wave theory to estimate non-linear wave parameters using truncated Fourier series.
+        - {meth}`layowt.metocean.wave.Wave.validate_theory` shows what wave theory is applicable for the Wave instance using the wave theories' figure by Le Mehaute.
+        - {meth}`layowt.metocean.wave.Wave.ursell` calculates the Ursell number for the Wave instance.
+        - {meth}`layowt.metocean.wave.Wave.williams_breaking_criterion` for plotting the Williams (1981) analytical breaking wave criterion for the Wave instance.
+    - {func}`layowt.metocean.wave_functions.deep_wavelength` for calculating the deep water wavelength from the wave period. Applicable for linear wave theory.
+    - {func}`layowt.metocean.wave_functions.intermediate_wavelength_approx` for calculating the approximate intermediate water depth wavelength from the wave period and water depth. Applicable for linear wave theory.
+    - {func}`layowt.metocean.wave_functions.intermediate_wavelength` for calculating the intermediate water depth wavelength from the wave period and water depth iteratively. Applicable for linear wave theory.
+    - {func}`layowt.metocean.wave_functions.shallow_wavelength` for calculating the shallow water depth wavelength from the wave period and water depth. Applicable for linear wave theory.
+    - {func}`layowt.metocean.wave_functions.breaking_height` for calculating the breaking wave height for a regular wave in a plane sea bed.
+    - {func}`layowt.metocean.wave_functions.iribarren` for calculating the Iribarren number (also known as surf similarity parameter).
+    - {func}`layowt.metocean.wave_functions.breaker_type` for determining the type of breaking wave based on the Iribarren number.
+    - {func}`layowt.metocean.wave_functions.second_order_crest` for calculating the wave crest height of a Second-order Stokes wave in deep water.
+    - {func}`layowt.metocean.wave_functions.second_order_trough` for calculating the wave trough height of a Second-order Stokes wave in deep water.
+    - {func}`layowt.metocean.wave_functions.pierson_moskowitz` for calculating the spectral density of the Pierson-Moskowitz wave spectrum for a sea state at a given frequency.
+    - {func}`layowt.metocean.wave_functions.plot_pierson_moskowitz` for plotting the Pierson-Moskowitz wave spectrum for a given sea state.
+    - {func}`layowt.metocean.wave_functions.jonswap` for calculating the spectral density of the JONSWAP wave spectrum for a sea state at a given frequency.
+    - {func}`layowt.metocean.wave_functions.plot_jonswap` for plotting the JONSWAP wave spectrum for a given sea state.
+    - {func}`layowt.metocean.wave_functions.ursell` for calculating the Ursell number which indicates the nonlinearity of waves.
+    - {func}`layowt.metocean.wave_functions.validate_theory` shows what wave theory is applicable for given wave parameters using the wave theories' figure by Le Mehaute.
+    - {func}`layowt.metocean.wave_functions.gamma_from_mean_periods` for estimating the JONSWAP peak enhancement factor from the spectral mean periods.
+    - {func}`layowt.metocean.wave_functions.tp_from_mean_period` for estimating the spectral peak wave period from the JONSWAP peak enhancement factor and a mean spectral period.
+    - {func}`layowt.metocean.wave_functions.williams_breaking_criterion` for plotting the Williams (1981) analytical breaking wave criterion for the given wave parameters.
+    - {func}`layowt.metocean.wave_functions.dingemans_gamma` for estimating the JONSWAP peak enhancement factor from the spectral mean periods using Dingemans' tabulated experimental results.
+    - {func}`layowt.metocean.wave_functions.dingemans_tp` for estimating the spectral peak wave period from the spectral mean periods using Dingemans' tabulated experimental results.
+ 
 
  
 ### Changed
 - {meth}`layowt.layouts.layout.Layout.plot` method now accepts the `basemap` and `basemap_provider` arguments to plot basemaps.
+
 
 
 
@@ -28,7 +54,8 @@ Bugfixes.
 - FIxed erroneous read of rated wind speed when loading a {class}`layowt.wtg.power_curve.PowerCurve` using the {meth}`layowt.wtg.power_curve.PowerCurve.from_wtg()` constructor method.
 - Fixed bug in AEP functions where the wind speed binning was not correct.
 
-=======================================================================
+
+
 
 =======================================================================
 ## [0.5.0] - [2023-01-23]

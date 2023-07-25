@@ -4,6 +4,7 @@ import scipy
 from coastlib.waves.support import wave_theories
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from scipy.interpolate import PchipInterpolator
 
 
 def deep_wavelength(wave_period: float) -> float:
@@ -724,7 +725,8 @@ def _t02_over_t01(gamma: float , t02: float , t01: float) -> float:
     denominator = 0.7303 + (0.04936 * gamma) - (0.006556 * gamma**2) + (0.0003610 * gamma**3)
     return (numerator / denominator) - (t02 / t01)
 
-def gamma_from_mean_periods(t02: float, t01: float) -> float:
+def gamma_from_mean_periods(t02: float, t01: float, limits: tuple[float, float] = (1, 10)) -> float:
+    
     """
     Estimate the JONSWAP peak enhancement factor :math:`\\gamma` from the spectral mean periods :math:`T_{m02}` and :math:`T_{m01}.`
     
@@ -747,6 +749,8 @@ def gamma_from_mean_periods(t02: float, t01: float) -> float:
         Mean spectral wave period based on the second moment in seconds.
     t01 : float
         Mean spectral wave period based on the first moment in seconds.
+    limits : tuple[float, float], optional
+        Tuple of the lower and upper allowable limits for :math:`\\gamma`, by default (1, 10)
 
     Returns
     -------
@@ -758,7 +762,14 @@ def gamma_from_mean_periods(t02: float, t01: float) -> float:
     .. [1] DNVGL-RP-C205, 19th Edition, December 2020 - Environmental conditions and environmental loads.
         <https://www.dnv.com/oilgas/download/dnv-rp-c205-environmental-conditions-and-environmental-loads.html>
     """
-    return scipy.optimize.root(fun=_t02_over_t01, x0=[3.3], args=(t02, t01)).x[0]
+    gamma = scipy.optimize.root(fun=_t02_over_t01, x0=[3.3], args=(t02, t01)).x[0]
+    
+    if gamma > limits[1]:
+        gamma = limits[1]
+    elif gamma < limits[0]:
+        gamma = limits[0]
+    
+    return gamma
 
 def tp_from_mean_period(t: float, gamma: float, period: str = "t02") -> float:
     """
@@ -802,3 +813,299 @@ def tp_from_mean_period(t: float, gamma: float, period: str = "t02") -> float:
         return t / (0.7303 + (0.04936 * gamma) - (0.006556 * gamma**2) + (0.0003610 * gamma**3))
     else:
         raise ValueError(f'Invalid value passed for "period". Must be one of "t02" or "t01". {period=} was passed.')
+
+def williams_breaking_criterion(wave_height:float, wave_length: float, depth: float, ax: Axes | None = None, figsize: tuple[float, float] = (10,10)) -> tuple[Figure, Axes]:
+    """
+    Plots the Williams (1981) analytical breaking wave criterion for the given wave parameters.
+    
+    .. image:: ../../../../_static/williams_breaking_criterion.png
+        :width: 800
+        :align: center
+
+    Parameters
+    ----------
+    wave_height : float
+        Wave height in metres.
+    wave_length : float
+        Wavelength in metres.
+    depth : float
+        Water depth in metres
+    ax : matplotlib.axes.Axes | None, optional
+        matplotlib.axes.Axes, by default None
+    figsize : tuple[float, float], optional
+        Figure size in inches in (width, height) format, by default (10,10)
+
+    Returns
+    -------
+    tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+        Tuple of Figure and Axes objects.
+
+    Raises
+    ------
+    TypeError
+        The passed ax argument was not of type Axes.
+    
+    References
+    ----------
+    .. [1] Use of the programs FOURIER, CNOIDAL and STOKES for steady waves
+        <https://johndfenton.com/Steady-waves/Instructions.pdf>
+    .. [2]  Fenton, J. D. & Rienecker, M. M. (1982) A Fourier method for solving nonlinear water wave problems: Application to solitary wave interactions, J. Fluid Mechanics 118, 411-443.
+        <https://johndfenton.com/Papers/Fenton82c+Rienecker-A-Fourier-method-for-solving-nonlinear-water-wave-problems.pdf>
+    .. [3] Rienecker, M. M. & Fenton, J. D. (1981) A Fourier approximation method for steady water waves, J. Fluid Mechanics 104, 119-137.
+        <https://johndfenton.com/Papers/Rienecker81+Fenton-A-Fourier-approximation-method-for-steady-water-waves.pdf>
+    .. [4] Williams, J.M. (1981) ”Limiting gravity waves in water of finite depth”, Phil. Trans. Roy. Soc. London A 302, 139-188.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.set_xscale('log')
+        ax.set_xlim(0.1, 100)
+        ax.set_ylim(0, 1)
+        ax.set_xlabel("Wavelength / depth (λ/d)", fontweight='bold', fontsize=12)
+        ax.set_ylabel("Wave Height / depth (H/d)", fontweight='bold', fontsize=12)
+        fig.suptitle("Applicability of Analytical and Numerical Theories", fontweight='bold', fontsize=14, y=0.9)
+        ax.grid(True, which='both')
+        ax.text(x=2.5, y=0.2, s="Stokes Theory", fontsize=14)
+        ax.text(x=20, y=0.2, s="Cnoidal Theory", fontsize=14)
+        x = np.arange(0.1, 100, 0.01)
+        y = ((0.141063 * x) + (0.0095721 * x**2) + ( 0.0077829 * x**3)) / (1 + (0.0788340 * x) + (0.0317567 * x**2) + (0.0093407 * x**3))
+
+        ax.plot(x, y, c='r', label='Williams (1981) Maximum Wave')
+        ax.plot(x[x>=7.67], 0.5 * 8 * np.pi**2 / (x[x>=7.67]**2), label="Stokes-Ursell number SU = 1/2 ($U_R$ ~ 40)")
+        ax.plot(x[x>=6.8], 30 / (x[x>=6.8]**2), '--', label="Ursell Number $U_R$ = 30")
+        ax.plot(x[x>=6.4], 26 / (x[x>=6.4]**2), ':', label="Ursell Number $U_R$ = 26")
+        ax.plot([0, 100], [0.55, 0.55], '--', c='k', linewidth=1)
+        ax.text(x=24, y=0.555, s="Nelson H/d = 0.55", fontsize=11, fontweight='bold')
+        ax.legend(loc='upper left', fontsize=12)
+    else:
+        try:
+            fig = ax.get_figure()
+        except AttributeError:
+            raise TypeError from AttributeError(
+                f"Invalid type in {type(ax)} for the 'ax' argument, "
+                f"must be Matplotlib Axes object."
+            )
+    
+    ax.scatter(wave_length / depth, wave_height / depth, c='r', s=100, alpha=0.55, label='Wave')
+    ax.plot([wave_length / depth, wave_length / depth], [0, 1], '--', c='r', alpha=0.5)
+    ax.plot([0.1, 100], [wave_height / depth, wave_height / depth], '--', c='r', alpha=0.5)
+    
+    return fig, ax
+
+def dingemans_gamma(t02: float, t01: float, limits: tuple[float, float] = (1, 10)) -> float:
+    """
+    Estimate the JONSWAP peak enhancement factor :math:`\\gamma` from the spectral mean periods :math:`T_{m02}` and :math:`T_{m01}` \\
+    from Dinegmans' tabulated empirical results.
+    
+    The JONSWAP Peak Enhancement Factor :math:`\\gamma` can be derived from the following table:
+    
+    +-----------------+-------------------+-------------------+
+    | γ               | ν01               | ν02               |
+    +=================+===================+===================+
+    | 1               | 1.29572           | 1.40772           |
+    +-----------------+-------------------+-------------------+
+    | 2               | 1.24024           | 1.3397            |
+    +-----------------+-------------------+-------------------+
+    | 3               | 1.20646           | 1.29661           |
+    +-----------------+-------------------+-------------------+
+    | 3.3             | 1.19857           | 1.28634           |
+    +-----------------+-------------------+-------------------+
+    | 3.64            | 1.1905            | 1.27576           |
+    +-----------------+-------------------+-------------------+
+    | 4               | 1.18282           | 1.26561           |
+    +-----------------+-------------------+-------------------+
+    | 5               | 1.16503           | 1.2418            |
+    +-----------------+-------------------+-------------------+
+    | 6               | 1.15103           | 1.22272           |
+    +-----------------+-------------------+-------------------+
+    | 7               | 1.13963           | 1.20700           |
+    +-----------------+-------------------+-------------------+
+    | 8               | 1.13015           | 1.19376           |
+    +-----------------+-------------------+-------------------+
+    | 9               | 1.1221            | 1.18241           |
+    +-----------------+-------------------+-------------------+
+    | 10              | 1.11516           | 1.17255           |
+    +-----------------+-------------------+-------------------+
+    | 15              | 1.09098           | 1.13753           |
+    +-----------------+-------------------+-------------------+
+    | 20              | 1.07631           | 1.11579           |
+    +-----------------+-------------------+-------------------+
+    
+    Where:
+        * :math:`\\nu_{01} = \\frac{T_p}{T_{m01}}`
+        * :math:`\\nu_{01} = \\frac{T_p}{T_{m02}}`
+        * :math:`T_p = \\textrm{Spectral Peak Wave Period.}`
+    
+    The ratio between :math:`\\nu_{02}` and :math:`\\nu_{01}` allows to remove the need to have :math:`T_p`, and :math:`\\gamma` can be derived directly.
+    The resulting value of :math:`\\gamma` is interpolated using a :class:`scipy.interpolate.PchipInterpolator`.
+    
+    The returned value of :math:`\\gamma` will be limited to the range provided.
+
+    Parameters
+    ----------
+    t02 : float
+        Mean spectral wave period based on the second moment in seconds.
+    t01 : float
+        Mean spectral wave period based on the first moment in seconds.
+    limits : tuple[float, float], optional
+        Tuple of the lower and upper allowable limits for :math:`\\gamma`, by default (1, 10).
+
+    Returns
+    -------
+    float
+        JONSWAP Peak Enhancement Factor, :math:`\\gamma`.
+    
+    References
+    ----------
+    .. [1]  Dingemans, M.W. (1987) Verification of numerical wave propagation models with laboratory measurements: HISWA verification in the directional wave basin.
+        <https://repository.tudelft.nl/islandora/object/uuid%3Aee1211e7-3b12-430c-99e9-b0bf2db295a8>
+    
+    See Also
+    --------
+    scipy.interpolate.PchipInterpolator : PCHIP 1-D monotonic cubic interpolation.
+    """
+    GAMMAS = [1, 2, 3, 3.3, 3.64, 4, 5, 6, 7, 8, 9, 10, 15, 20]
+    T02_T01 = [0.920438723609809,
+               0.925759498395163,
+               0.930472539931051,
+               0.931767650854362,
+               0.933169248134445,
+               0.934584903722316,
+               0.938178450636173,
+               0.941368424496205,
+               0.944183927091963,
+               0.946714582495644,
+               0.948994003771957,
+               0.951055392094154,
+               0.9590780023384,
+               0.964616997822171]
+    
+    interpolator = PchipInterpolator(T02_T01, GAMMAS)
+    
+    gamma = interpolator(t02 / t01)
+    
+    if gamma > limits[1]:
+        gamma = limits[1]
+    elif gamma < limits[0]:
+        gamma = limits[0]
+    
+    return gamma
+
+def dingemans_tp(t: float, gamma: float, period: str = "t02") -> float:
+    """
+    Estimate the spectral peak wave period :math:`T_p` from the spectral mean periods :math:`T_{m02}` and :math:`T_{m01}` \\
+    from Dinegmans' tabulated empirical results.
+    
+    The spectral peak wave period can be related to the JONSWAP peak enhancement factor and a mean spectral period
+    (:math:`T_{m02}` or :math:`T_{m01}.`) using the following tabulated empirical relationships:
+    
+    +-----------------+-------------------+-------------------+
+    | γ               | ν01               | ν02               |
+    +=================+===================+===================+
+    | 1               | 1.29572           | 1.40772           |
+    +-----------------+-------------------+-------------------+
+    | 2               | 1.24024           | 1.3397            |
+    +-----------------+-------------------+-------------------+
+    | 3               | 1.20646           | 1.29661           |
+    +-----------------+-------------------+-------------------+
+    | 3.3             | 1.19857           | 1.28634           |
+    +-----------------+-------------------+-------------------+
+    | 3.64            | 1.1905            | 1.27576           |
+    +-----------------+-------------------+-------------------+
+    | 4               | 1.18282           | 1.26561           |
+    +-----------------+-------------------+-------------------+
+    | 5               | 1.16503           | 1.2418            |
+    +-----------------+-------------------+-------------------+
+    | 6               | 1.15103           | 1.22272           |
+    +-----------------+-------------------+-------------------+
+    | 7               | 1.13963           | 1.20700           |
+    +-----------------+-------------------+-------------------+
+    | 8               | 1.13015           | 1.19376           |
+    +-----------------+-------------------+-------------------+
+    | 9               | 1.1221            | 1.18241           |
+    +-----------------+-------------------+-------------------+
+    | 10              | 1.11516           | 1.17255           |
+    +-----------------+-------------------+-------------------+
+    | 15              | 1.09098           | 1.13753           |
+    +-----------------+-------------------+-------------------+
+    | 20              | 1.07631           | 1.11579           |
+    +-----------------+-------------------+-------------------+
+    
+    Where:
+        * :math:`\\nu_{01} = \\frac{T_p}{T_{m01}}`
+        * :math:`\\nu_{01} = \\frac{T_p}{T_{m02}}`
+        * :math:`T_p = \\textrm{Spectral Peak Wave Period.}`
+    
+    The resulting value of :math:`\\nu_{01}` or :math:`\\nu_{02}` (depending on the period provided) is interpolated using a :class:`scipy.interpolate.PchipInterpolator`.
+
+    Parameters
+    ----------
+    t : float
+        Mean spectral wave period in seconds.
+    gamma : float
+        JONSWAP peak enhancement factor.
+    period : str, optional
+        Selection of which mean spectral period to use. Must be one of "t02" or "t01", by default "t02".
+
+    Returns
+    -------
+    float
+        Approximation of the spectral peak wave period.
+
+    Raises
+    ------
+    ValueError
+        If "t02" or "t01" was not passed to the "period" argument.
+    
+    References
+    ----------
+    .. [1]  Dingemans, M.W. (1987) Verification of numerical wave propagation models with laboratory measurements: HISWA verification in the directional wave basin.
+        <https://repository.tudelft.nl/islandora/object/uuid%3Aee1211e7-3b12-430c-99e9-b0bf2db295a8>
+    
+    See Also
+    --------
+    scipy.interpolate.PchipInterpolator : PCHIP 1-D monotonic cubic interpolation.
+    """
+    
+    GAMMAS = [1, 2, 3, 3.3, 3.64, 4, 5, 6, 7, 8, 9, 10, 15, 20]
+    V01 = [
+        1.29572,
+        1.24024,
+        1.20646,
+        1.19857,
+        1.1905,
+        1.18282,
+        1.16503,
+        1.15103,
+        1.13963,
+        1.13015,
+        1.1221,
+        1.11516,
+        1.09098,
+        1.07631
+        ]
+    
+    V02 = [
+        1.40772,
+        1.3397,
+        1.29661,
+        1.28634,
+        1.27576,
+        1.26561,
+        1.2418,
+        1.22272,
+        1.207,
+        1.19376,
+        1.18241,
+        1.17255,
+        1.13753,
+        1.11579
+    ]
+    
+    if period.lower() not in ["t02", "t01"]:
+        raise ValueError(f'Invalid value passed for "period". Must be one of "t02" or "t01". {period=} was passed.')
+    
+    period_ratio = {"t02": V02, "t01": V01}
+    interpolator = PchipInterpolator(GAMMAS, period_ratio[period])
+    
+    tp = interpolator(gamma) * t
+    return tp
