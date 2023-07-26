@@ -20,6 +20,7 @@ New Metocean Module!
         - {meth}`layowt.metocean.wave.Wave.validate_theory` shows what wave theory is applicable for the Wave instance using the wave theories' figure by Le Mehaute.
         - {meth}`layowt.metocean.wave.Wave.ursell` calculates the Ursell number for the Wave instance.
         - {meth}`layowt.metocean.wave.Wave.williams_breaking_criterion` for plotting the Williams (1981) analytical breaking wave criterion for the Wave instance.
+        - {meth}`layowt.metocean.wave.Wave.plot` for plotting the wave profile with multiple depth profiles for a given parameter.
     - {func}`layowt.metocean.wave_functions.deep_wavelength` for calculating the deep water wavelength from the wave period. Applicable for linear wave theory.
     - {func}`layowt.metocean.wave_functions.intermediate_wavelength_approx` for calculating the approximate intermediate water depth wavelength from the wave period and water depth. Applicable for linear wave theory.
     - {func}`layowt.metocean.wave_functions.intermediate_wavelength` for calculating the intermediate water depth wavelength from the wave period and water depth iteratively. Applicable for linear wave theory.

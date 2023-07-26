@@ -170,4 +170,32 @@ class Wave(FentonWave):
             Trough height above the still water level in metres.
         """
         return self.surface['eta (m)'].min() - self.depth
-        
+    
+    def plot(self, what: str = 'ua', scale: float = 1, nprof: int = 4) -> tuple[Figure, Axes]: 
+        """
+        Plots wave profile with multiple depth profiles for a given parameter.
+
+        Parameters
+        ----------
+        what : str, optional
+            Parameter to plot, by default 'ua'. \n
+                'u': 'u (m/s)', \n
+                'v': 'v (m/s)', \n
+                'ua': 'du/dt (m/s^2)', \n
+                'va': 'dv/dt (m/s^2)', \n
+                'ux': 'du/dx (1/s)', \n
+                'vx': 'du/dy (1/s)', \n
+                'uy': 'du/dy (1/s)', \n
+                'vy': 'du/dx (1/s)', \n
+                'phi': 'dphi/dt (m^2/s^2)'
+        scale : float, optional
+            Parameter scale, by default 1
+        nprof : int, optional
+             Number of parameter profiles, by default 4
+
+        Returns
+        -------
+        tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+            Tuple of Figure and Axes objects.
+        """
+        return super().plot(what=what, scale=scale, nprof=nprof)
