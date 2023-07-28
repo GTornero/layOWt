@@ -5,13 +5,13 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "layowt"
 description = "Multi-disciplinary Offshore Wind Farm Layout Optimisation in Python."
-authors = [{name = "Guillermo Tornero", email = "gtornerodediego@gmail.com"}]
+authors = [{ name = "Guillermo Tornero", email = "gtornerodediego@gmail.com" }]
 requires-python = ">=3.10"
 version = "0.6.0"
 readme = "README.md"
 dependencies = [
     "matplotlib==3.6.2",
-    "numpy==1.23.4",
+    "numpy==1.23.5",
     "scipy==1.9.3",
     "Shapely==1.8.1.post1",
     "geopandas==0.10.2",
@@ -37,6 +37,4 @@ doc = [
     "sphinx-hoverxref",
     "sphinx-copybutton",
 ]
-tests = [
-    "pytest==7.1.2",
-]
+tests = ["pytest==7.1.2"]
