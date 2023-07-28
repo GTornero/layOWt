@@ -726,7 +726,6 @@ def _t02_over_t01(gamma: float , t02: float , t01: float) -> float:
     return (numerator / denominator) - (t02 / t01)
 
 def gamma_from_mean_periods(t02: float, t01: float, limits: tuple[float, float] = (1, 10)) -> float:
-    
     """
     Estimate the JONSWAP peak enhancement factor :math:`\\gamma` from the spectral mean periods :math:`T_{m02}` and :math:`T_{m01}.`
     
@@ -761,6 +760,44 @@ def gamma_from_mean_periods(t02: float, t01: float, limits: tuple[float, float] 
     ----------
     .. [1] DNVGL-RP-C205, 19th Edition, December 2020 - Environmental conditions and environmental loads.
         <https://www.dnv.com/oilgas/download/dnv-rp-c205-environmental-conditions-and-environmental-loads.html>
+
+    Examples
+    --------
+    This example shows how to apply this function to all the rows of a dataframe containing mean periods :math:`T_{m01}` and :math:`T_{m02}`.
+    
+    >>> import layowt as ow
+    >>> import pandas as pd
+    >>> import numpy as np
+    
+    >>> t02 = np.random.uniform(low=1, high=1.09, size=10)
+    >>> t01 = t02 * np.random.uniform(low=1, high=1.09, size=t02.size)
+    >>> df = pd.DataFrame({"t02"=t02, "t01"=t01})
+    >>> df
+            t01       t02
+        0  1.151841  1.073259
+        1  1.141005  1.078486
+        2  1.133805  1.055902
+        3  1.134703  1.088515
+        4  1.123386  1.073267
+        5  1.051209  1.025750
+        6  1.100735  1.045936
+        7  1.042005  1.025906
+        8  1.046190  1.009093
+        9  1.084608  1.010734
+    
+    >>> df["gamma"] = df.apply(lambda x: ow.metocean.wave_functions.gamma_from_mean_periods(t02=x["t02"], t01=x["t01"], limits=(1, 10)), axis=1)
+    >>> df
+            t01       t02      gamma
+        0  1.151841  1.073259   3.338034
+        1  1.141005  1.078486   7.499061
+        2  1.133805  1.055902   3.222551
+        3  1.134703  1.088515  10.000000
+        4  1.123386  1.073267  10.000000
+        5  1.051209  1.025750  10.000000
+        6  1.100735  1.045936  10.000000
+        7  1.042005  1.025906  10.000000
+        8  1.046190  1.009093  10.000000
+        9  1.084608  1.010734   3.364885
     """
     gamma = scipy.optimize.root(fun=_t02_over_t01, x0=[3.3], args=(t02, t01)).x[0]
     
@@ -1109,3 +1146,83 @@ def dingemans_tp(t: float, gamma: float, period: str = "t02") -> float:
     
     tp = interpolator(gamma) * t
     return tp
+
+def dnv_gamma(hs: float, tp: float) -> float:
+    """
+    Estimate the JONSWAP peak enhancement factor :math:`\\gamma` from the significant wave height \\
+    and the spectral peak wave period using the DNV formulations.
+    
+    According to DNV, the JONSWAP peak enhancement factor can be estimated from:
+    
+    .. math::
+        \\gamma = 5 \\textrm{ for } \\frac{T_p}{\\sqrt{H_s}} \\leq 3.6
+        
+        \\gamma = e^{5.75 - \\frac{T_p}{\\sqrt{H_s}}} \\textrm{ for } 3.6 < \\frac{T_p}{\\sqrt{H_s}} < 5
+        
+        \\gamma = 1 \\textrm{ for } 5 \\leq \\frac{T_p}{\\sqrt{H_s}}
+
+    Parameters
+    ----------
+    hs : float
+        Significant wave height in metres.
+    tp : float
+        Spectral peak wave period in seconds.
+        
+    Returns
+    -------
+    float
+        JONSWAP Peak Enhancement Factor, :math:`\\gamma`.
+    
+    References
+    ----------
+    .. [1] DNVGL-RP-C205, 19th Edition, December 2020 - Environmental conditions and environmental loads.
+        <https://www.dnv.com/oilgas/download/dnv-rp-c205-environmental-conditions-and-environmental-loads.html>
+    """
+    s = tp / np.sqrt(hs)
+    
+    if s <= 3.6:
+        return 5.0
+    elif s < 5:
+        return np.exp(5.75 - (1.15 * s))
+    else:
+        return 1.0
+
+def torsethaugen_gamma(hs: float, tp: float, limits: tuple[float, float] = (1, 10)) -> float:
+    """
+    Estimate the JONSWAP peak enhancement factor :math:`\\gamma` from the significant wave height \\
+    and the spectral peak wave period using the Torsethaugen formulation.
+    
+    According to Torsethaugen, the JONSWAP peak enhancement factor can be estimated from:
+    
+    .. math::
+        \\gamma = \\exp\\left[\\frac{1}{0.287} \\left(1 - 0.1975\\left(0.036 - 0.0056\\frac{T_p}{\\sqrt(H_s)}\\right)\\frac{T_{p}^{4}}{H_{s}^{2}}\\right)\\right]
+
+    Parameters
+    ----------
+    hs : float
+        Significant wave height in metres.
+    tp : float
+        Spectral peak wave period in seconds.
+
+    Returns
+    -------
+    float
+        JONSWAP Peak Enhancement Factor, :math:`\\gamma`.
+    
+    References
+    ----------
+    .. [1] Torsethaugen, K., Faanes, T., Haver, S., 1984. characteristics for Extreme Sea States
+        on the Norwegian Continental Shelf. Technical Report, (NHL 2 84123), Norwegian
+        Hydrodynamics Laboratories, Division River and Harbour Laboratory, Trondheim,
+        Norway.
+    """
+    d = 0.036 - 0.0056 * (tp / np.sqrt(hs))
+    
+    gamma = np.exp((1 / 0.287)*(1 - (0.1975*d*(tp**4))/(hs**2)))
+
+    if gamma > limits[1]:
+        return limits[1]
+    elif gamma < limits[0]:
+        return limits[0]
+    
+    return gamma
