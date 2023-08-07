@@ -165,4 +165,61 @@ def vref_ewts_davenport(v: float, k: float, T: float=50, n: int=23037) -> float:
     vref = v * a * b
     return vref
 
-# TODO: Froya Equation 
+def froya(u: float, T: int, T0: int, h_ref: float, z: float) -> float:
+    """
+    The Frøya wind profile can be used to convert the mean wind speed :math:`U_0` with averaging \\
+    period :math:`T_0` at height H above sea level to the mean wind speed U with averaging period T at \\
+    height z above sea level.
+    
+    The Frøya profile includes a vertical wind speed profile, and a gust factor which allows for
+    conversion of mean wind speeds between different averaging periods.
+    
+    The Frøya profile provides an estimate to the mean wind speed :math:`U(T, z)` with averaging period of T seconds and at height z metres above mean sea level given by:
+    
+    .. math::
+        U\\left(T, z\\right) = U_{0}\\left[1 + C \\ln\\left(\\frac{z}{H}\\right)\\right]\\left[1 - 0.41I_{U}\\left(z\\right)\\ln\\left(\\frac{T}{T_0}\\right)\\right]
+    
+    Where:
+        * :math:`U_0` is the reference mean wind speed in metres per second
+        * :math:`T` is the averaging period of :math:`U_0` in seconds
+        * :math:`H` is the height of :math:`U_0` in metres above mean sea level
+        * :math:`C = 0.0573\\sqrt{1 + 0.1483U_{0}}`
+        * :math:`I_{U}\\left(z\\right) = 0.06\\left(1 + 0.043U_{0}\\right)\\left(\\frac{z}{H}\\right)^{-0.22}`
+    
+    The method is valid for :math:`T < T_0`.
+
+    Parameters
+    ----------
+    u : float
+        Reference mean wind seed with averaging period T0 seconds, and at height z metres above mean sea level.
+    T : int
+        Target averaging period in seconds. Must be less than or equal to T0.
+    T0 : int
+        Averaging period of the reference mean wind speed in seconds.
+    h_ref : float
+        Height of the reference mean wind speed in metres above sea level.
+    z : float
+        Target height in metre above mean sea level.
+
+    Returns
+    -------
+    float
+        Mean wind speed with averaging period of T seconds at height z metres above sea level from the Frøya wind profile.
+    
+    References
+    ----------
+    .. [1] DNVGL-RP-C205, 19th Edition, December 2020 - Environmental conditions and environmental loads.
+        <https://www.dnv.com/oilgas/download/dnv-rp-c205-environmental-conditions-and-environmental-loads.html>
+    .. [2] Andersen, Odd & Løvseth, Jørgen. (2006). The Frøya database and maritime boundary layer wind description. Marine Structures. 19. 173-192. 10.1016/j.marstruc.2006.07.003.
+        <https://www.researchgate.net/publication/229394889_The_Froya_database_and_maritime_boundary_layer_wind_description>
+    """
+    if not T <= T0:
+        raise ValueError("T must smaller or equal to T0.")
+    
+    c = 0.0573 * np.sqrt(1 + 0.148 * u)
+    I_u = 0.06 * (1 + 0.043 * u) * ((z / h_ref)**-0.22)
+    
+    a = 1 + (c * np.log(z / h_ref))
+    b = 1 - (0.41 * I_u * np.log(T/T0))
+    
+    return u * a * b
