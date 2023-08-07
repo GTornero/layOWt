@@ -11,3 +11,5 @@ from .wave_functions import (breaker_type, breaking_height, deep_wavelength,
                              second_order_trough, shallow_wavelength,
                              torsethaugen_gamma, tp_from_mean_period, ursell,
                              validate_theory, williams_breaking_criterion)
+from .wind_functions import (vref_ewts_davenport, vref_ewts_exact,
+                             vref_ewts_gumbel)
