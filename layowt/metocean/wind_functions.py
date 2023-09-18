@@ -1,4 +1,7 @@
+from typing import Iterable
+
 import numpy as np
+from numpy.typing import NDArray
 from scipy.special import gamma
 
 
@@ -167,8 +170,8 @@ def vref_ewts_davenport(v: float, k: float, T: float=50, n: int=23037) -> float:
 
 def froya(u: float, T: int, T0: int, h_ref: float, z: float) -> float:
     """
-    The Frøya wind profile can be used to convert the mean wind speed :math:`U_0` with averaging \\
-    period :math:`T_0` at height H above sea level to the mean wind speed U with averaging period T at \\
+    The Frøya wind profile can be used to convert the mean wind speed :math:`U_0` with averaging \
+    period :math:`T_0` at height H above sea level to the mean wind speed U with averaging period T at \
     height z above sea level.
     
     The Frøya profile includes a vertical wind speed profile, and a gust factor which allows for
@@ -223,3 +226,14 @@ def froya(u: float, T: int, T0: int, h_ref: float, z: float) -> float:
     b = 1 - (0.41 * I_u * np.log(T/T0))
     
     return u * a * b
+
+def ntm(i_ref: float, ws: Iterable[float] | None=None) -> NDArray[np.float64]:
+    
+    if ws is None:
+        ws_array = np.arange(0.1, 35, 0.1, dtype=np.float64)
+    else:
+        ws_array = np.array(ws, dtype=np.float64)
+    
+    ti = i_ref * ((0.75 * ws_array) + 5.6) / ws_array
+    
+    return ws_array, ti
