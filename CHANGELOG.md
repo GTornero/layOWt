@@ -8,6 +8,34 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 =======================================================================
+## [0.7.0] - [TBC]
+ 
+LayOWt Version 0.7.0
+
+Minor additions to existing subpackages.
+ 
+### Added
+- {class}`layowt.wtg.power_curve.PowerCurve`:
+    - {meth}`layowt.wtg.power_curve.PowerCurve.compare_curves` graphically compares PowerCurve instance with other PowerCurve objects.
+- {mod}`layowt.metocean.wind_functions`: Metocean wind functions module:
+    -{func}`layowt.metocean.wind_functions.vref_ewts_exact` EWTS II Exact algorithm to estimate Vref from the mean wind speed and the Weibull k value.
+    -{func}`layowt.metocean.wind_functions.vref_ewts_gumbel` EWTS II Gumbel algorithm to estimate Vref from the mean wind speed and the Weibull k value.
+    -{func}`layowt.metocean.wind_functions.vref_ewts_davenport` EWTS II Davenport algorithm to estimate Vref from the mean wind speed and the Weibull k value.
+    -{func}`layowt.metocean.wind_functions.froya` The Frøya wind profile adjustment.
+    -{func}`layowt.metocean.wind_functions.ntm` IEC Normal Turbulence Model based on Iref.
+
+ 
+### Changed
+
+
+
+
+### Fixed
+
+
+
+
+=======================================================================
 ## [0.6.0] - [2023-07-21]
  
 LayOWt Version 0.6.0

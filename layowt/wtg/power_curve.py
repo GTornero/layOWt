@@ -498,6 +498,54 @@ class PowerCurve:
         axs[1].legend()
 
         return power_curves, fig, axs
+    
+    def compare_curves(self, power_curves: Iterable["PowerCurve"], figsize: tuple=(18, 8)) -> tuple[Figure, Axes]:
+        """
+        Method which compares the power curve instance and other PowerCurve instances passed to power_curves.
+        
+        Parameters
+        ----------
+        Power_curves : Iterable[PowerCurve]
+            Iterable of PowerCurve instances to comapre current PowerCurve agaisnt.
+        figsize : tuple, optional
+            Figure size in inches in (width, height) format, by default (18, 8).
+
+        Returns
+        -------
+        tuple[matplotlib.figure.Figure, numpy.ndarray[matplotlib.axes.Axes]]
+            Tuple made up of a Figure and Axes objects.
+        """        
+        fig, axs = plt.subplots(ncols=2, figsize=figsize)
+        fig.suptitle('Power Curve Comparison', fontsize=16, fontweight="bold")
+        
+        axs[0].grid(True)
+        axs[0].set_title("Power Curves", fontweight="bold")
+        axs[0].set_xlabel("Wind Speed [m/s]", fontweight="bold")
+        axs[0].set_ylabel("Active Power [kW]", fontweight="bold")
+        axs[0].spines['left'].set_color('blue')
+        axs[0].yaxis.label.set_color('blue')
+        axs[0].tick_params(axis='y', colors='blue')
+        
+        
+        axs[1].grid(True)
+        axs[1].set_title("Thrust Curves", fontweight="bold")
+        axs[1].set_xlabel("Wind Speed [m/s]", fontweight="bold")
+        axs[1].set_ylabel("Thrust Coefficient", fontweight="bold")
+        axs[1].spines['left'].set_color('red')
+        axs[1].yaxis.label.set_color('red')
+        axs[1].tick_params(axis='y', colors='red')
+        
+        axs[0].plot(self.data.index, self.data["power"], label=self.attributes["curve_id"])
+        axs[1].plot(self.data.index, self.data["ct"], label=self.attributes["curve_id"])
+        
+        for power_curve in power_curves:
+            axs[0].plot(power_curve.data.index, power_curve.data["power"], label=power_curve.attributes["curve_id"])
+            axs[1].plot(power_curve.data.index, power_curve.data["ct"], label=power_curve.attributes["curve_id"])
+        
+        axs[0].legend()
+        axs[1].legend()
+
+        return fig, axs
 
     @classmethod
     def get_commercial_turbines(cls, engine: Optional[sa.engine.Engine]=None, username: Optional[str]=None) -> pd.DataFrame:
