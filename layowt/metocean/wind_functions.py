@@ -237,3 +237,49 @@ def ntm(i_ref: float, ws: Iterable[float] | None=None) -> NDArray[np.float64]:
     ti = i_ref * ((0.75 * ws_array) + 5.6) / ws_array
     
     return ws_array, ti
+
+def dnv_wind_profile(u: float, T: int, T0: int, h_ref: float, z: float) -> float:
+    """dnv_wind_profile
+    The wind profile recommended by DNV-ST-N001 Marine Operations and Marine Warranty. \
+    This wind profile can be used to convert the mean wind speed :math:`U_0` with averaging \
+    period :math:`T_0` at height H above sea level to the mean wind speed U with averaging period \
+    T at height z above sea level.
+    
+    The DNV profile includes a vertical wind speed profile, and a gust factor which allows for
+    conversion of mean wind speeds between different averaging periods.
+    
+    The DNV profile provides an estimate to the mean wind speed :math:`U(T, z)` with averaging period of T seconds and at height z metres above mean sea level given by:
+
+    .. math::
+        U\\left(T, z\\right) = U_{0}\\left[1 + 0.137\\ln\\left(\\frac{z}{H}\\right)-0.047\\ln\\left(\\frac{T}{T_{0}}\\right)\\right]
+    
+    Where:
+        * :math:`U_0` is the reference mean wind speed in metres per second
+        * :math:`T` is the averaging period of :math:`U_0` in seconds
+        * :math:`H` is the height of :math:`U_0` in metres above mean sea level
+
+    Parameters
+    ----------
+    u : float
+        Reference mean wind seed with averaging period T0 seconds, and at height z metres above mean sea level.
+    T : int
+        Target averaging period in seconds. Must be less than or equal to T0.
+    T0 : int
+        Averaging period of the reference mean wind speed in seconds.
+    h_ref : float
+        Height of the reference mean wind speed in metres above sea level.
+    z : float
+        Target height in metre above mean sea level.
+
+    Returns
+    -------
+    float
+        Mean wind speed with averaging period of T seconds at height z metres above sea level from the DNV wind profile.
+    
+    References
+    ----------
+    .. [1] DNVGL-ST-N001, September 2021 - Marine Operations and Marine Warranty.
+        <https://www.dnv.com/oilgas/download/dnv-st-n001-marine-operations-and-marine-warranty.html>
+    """
+    correction_factor = 1 + 0.137 * np.log(z / h_ref) - 0.045 * np.log(T / T0)
+    return u * correction_factor
