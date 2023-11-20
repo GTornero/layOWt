@@ -227,19 +227,55 @@ def froya(u: float, T: int, T0: int, h_ref: float, z: float) -> float:
     
     return u * a * b
 
-def ntm(i_ref: float, ws: Iterable[float] | None=None) -> NDArray[np.float64]:
+def ntm(i_ref: float, ws: Iterable[float] | None=None, a: float = 0.75, b: float = 5.6) -> NDArray[np.float64]:
+    """
+    Normal Turbulence Model defined by the IEC.
     
+    Calculates the Normal Turbulence profile vs wind speed for the standard IEC wind turbine classes.
+    
+    The normal turbulence model is given by:
+
+    .. math::
+        \\sigma_{1} = I_{ref}\\left(aV_{hub}+b\\right)
+    
+    Where:
+        * :math:`\\sigma_{1}` is the reference representative value of the turbulence standard deviation, given by the 90% quantile for hte given hub height wind speed.
+        * :math:`V_{hub}` is the hub height wind speed in m/s.
+        * :math:`a` is equal to 0.75.
+        * :math:`b` is equal to 5.6.
+
+    Parameters
+    ----------
+    i_ref : float
+        The reference value of representative ambient turbulence at 15m/s.
+    ws : Iterable[float] | None, optional
+        The wind speed values at which to calculate the normal turbulence model profile, by default None.
+    a : float, optional
+        Standard constant equal to 0.75 defined by the IEC, by default 0.75
+    b : float, optional
+        Standard constant equal to 5.6 defined by the IEC, by default 5.6.
+
+    Returns
+    -------
+    NDArray[np.float64]
+        Array of ambient turbulence values at the specified wind speeds.
+    
+    References
+    ----------
+    .. [1] IEC 61400-1: Wind Energy Generation Systems – Part 1: Design Requirements, edition 4.0, 2019-02.
+        <https://webstore.iec.ch/publication/26423>
+    """
     if ws is None:
         ws_array = np.arange(0.1, 35, 0.1, dtype=np.float64)
     else:
         ws_array = np.array(ws, dtype=np.float64)
     
-    ti = i_ref * ((0.75 * ws_array) + 5.6) / ws_array
+    ti = i_ref * ((a * ws_array) + b) / ws_array
     
-    return ws_array, ti
+    return ti
 
 def dnv_wind_profile(u: float, T: int, T0: int, h_ref: float, z: float) -> float:
-    """dnv_wind_profile
+    """
     The wind profile recommended by DNV-ST-N001 Marine Operations and Marine Warranty. \
     This wind profile can be used to convert the mean wind speed :math:`U_0` with averaging \
     period :math:`T_0` at height H above sea level to the mean wind speed U with averaging period \
