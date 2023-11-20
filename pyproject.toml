@@ -29,12 +29,15 @@ dependencies = [
 
 [project.optional-dependencies]
 doc = [
-    "sphinx~=5.0.1",
+    "sphinx",
     "myst-parser",
     "furo",
     "nbsphinx",
     "sphinx-autoapi",
     "sphinx-hoverxref",
     "sphinx-copybutton",
+    "sphinx-autobuild",
+    "pandoc",
+    "furo",
 ]
 tests = ["pytest==7.1.2"]
