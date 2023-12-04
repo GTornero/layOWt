@@ -379,7 +379,7 @@ class BattjesGroenendijk:
         ax : matplotlib.axes.Axes | None, optional
             Axes on which the Layout is drawn. If None, a new Figure and Axes are created, by default None.
         figsize : tuple, optional
-            Figure size in inches in (width, height) format, by default (8, 6)
+            Figure size in inches in (width, height) format, by default (8, 6).
 
         Returns
         -------
