@@ -220,6 +220,11 @@ class GriddedLayoutGenerator:
         list[Layout] | None
             List of generated gridded Layout objects. Alternatively None if writing to file.
         
+        Raises
+        ------
+        ValueError
+            If EPSG is None when exporting layouts to file.
+        
         Examples
         --------
         >>> layout_gen = GriddedLayoutGenerator(
@@ -257,6 +262,9 @@ class GriddedLayoutGenerator:
         --------
         Under heavy development.
         """
+        if (to_file) and (self.epsg is None):
+            raise ValueError("EPSG cannot be None when exporting layouts to file.")
+        
         layouts = []
         total = len(self)
         grid_gen = self._grid_generator()
@@ -562,6 +570,11 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
         list[FloatingLayout] | None
             List of generated gridded FloatingLayout objects. Alternatively None if writing to file.
         
+        Raises
+        ------
+        ValueError
+            If EPSG is None when exporting layouts to file.
+        
         Note
         ----
         When passing parameters that results in hundreds of thousands (or more!) of individual grids, performance can suffer.
@@ -578,6 +591,8 @@ class FloatingGriddedLayoutGenerator(GriddedLayoutGenerator):
         --------
         Under heavy development.
         """
+        if (to_file) and (self.epsg is None):
+            raise ValueError("EPSG cannot be None when exporting layouts to file.")
         
         layouts = []
         total = len(self)
