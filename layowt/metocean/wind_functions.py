@@ -239,7 +239,7 @@ def ntm(i_ref: float, ws: Iterable[float] | None=None, a: float = 0.75, b: float
         \\sigma_{1} = I_{ref}\\left(aV_{hub}+b\\right)
     
     Where:
-        * :math:`\\sigma_{1}` is the reference representative value of the turbulence standard deviation, given by the 90% quantile for hte given hub height wind speed.
+        * :math:`I_{ref}` is the reference representative value of the turbulence intensity, given by the 90% quantile for the given hub height wind speed.
         * :math:`V_{hub}` is the hub height wind speed in m/s.
         * :math:`a` is equal to 0.75.
         * :math:`b` is equal to 5.6.
@@ -271,6 +271,56 @@ def ntm(i_ref: float, ws: Iterable[float] | None=None, a: float = 0.75, b: float
         ws_array = np.array(ws, dtype=np.float64)
     
     ti = i_ref * ((a * ws_array) + b) / ws_array
+    
+    return ti
+
+def etm(i_ref: float, vave: float = 10, ws: Iterable[float] | None=None) -> NDArray[np.float64]:
+    """
+    Extreme Turbulence Model defined by the IEC.
+    
+    Calculates the Extreme Turbulence profile vs wind speed for the standard IEC wind turbine classes.
+    
+    The normal turbulence model is given by:
+
+    .. math::
+        \\sigma_{1} = cI_{ref}\\left(0.072\\left(\\frac{V_{ave}}{c}+3\\right)\\left(\\frac{V_{hub}}{c}-4\\right)+10\\right); c = 2 m/s
+    
+    Where:
+        * :math:`I_{ref}` is the reference representative value of the turbulence intensity, given by the 90% quantile for the given hub height wind speed.
+        * :math:`V_{hub}` is the hub height wind speed in m/s.
+        * :math:`V_{ave}` is the average annual hub height wind speed in m/s.
+        * :math:`a` is equal to 0.75.
+        * :math:`b` is equal to 5.6.
+
+    Parameters
+    ----------
+    i_ref : float
+        The reference value of representative ambient turbulence at 15m/s.
+    vave : float
+        The annual average wind speed at hub height in m/s, by default 10.
+    ws : Iterable[float] | None, optional
+        The wind speed values at which to calculate the extreme turbulence model profile, by default None.
+
+    Returns
+    -------
+    NDArray[np.float64]
+        Array of extreme ambient turbulence values at the specified wind speeds.
+    
+    References
+    ----------
+    .. [1] IEC 61400-1: Wind Energy Generation Systems – Part 1: Design Requirements, edition 4.0, 2019-02.
+        <https://webstore.iec.ch/publication/26423>
+    """
+    if ws is None:
+        ws_array = np.arange(0.1, 35, 0.1, dtype=np.float64)
+    else:
+        ws_array = np.array(ws, dtype=np.float64)
+    
+    C = 2
+    
+    sigma = C * i_ref * (0.072 * ((vave/C) + 3) * ((ws_array/C) - 4) + 10)
+    
+    ti = sigma / ws_array
     
     return ti
 
