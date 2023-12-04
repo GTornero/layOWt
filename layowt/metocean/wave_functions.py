@@ -1256,7 +1256,7 @@ def rayleigh_hp(Hm0: float, P: float) -> float:
     Hp = Hrms*((-np.log(P))**(1/2))
     return Hp
 
-def rayleigh_hn(Hm0: float, N: float) -> float:
+def rayleigh_hmaxn(Hm0: float, N: float) -> float:
     """
     Computes the maximum wave height out of N individual waves given a Rayleigh distribution \\
     defined by a spectral wave height :math:`H_{m0}`.
@@ -1275,47 +1275,351 @@ def rayleigh_hn(Hm0: float, N: float) -> float:
     """
     return Hm0/np.sqrt(2)*np.sqrt(np.log(N))
 
-def plot_rayleigh_pdf(Hm0, normalize: bool = False,  ax: Axes | None = None, figsize: tuple = (8, 6)) -> tuple[Figure, Axes]:
-        
-        if ax is None:
-            fig, ax = plt.subplots(figsize=figsize)
-            ax.grid()
-            if normalize:
-                ax.set_xlabel("H/Hrms [-]")
-                ax.set_ylabel("Probability Density Function f(H/Hrms)")
-            else:
-                ax.set_xlabel("H [m]")
-                ax.set_ylabel("Probability Density Function f(H)")
-        else:
-            try:
-                fig = ax.get_figure()
-            except AttributeError:
-                raise TypeError from AttributeError(
-                    f"Invalid type in {type(ax)} for the 'ax' argument, "
-                    f"must be Matplotlib Axes object."
-                )
+def rayleigh_hn(Hm0: float, N: float) -> float:
+    """
+    Computes :math:`H_{1/N}`.
+
+    This method computes the mean of the highest 1/N-part of the
+    wave heights.
+
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    N : float
+        Highest 1/N-part of the wave heights [-].
+
+    Returns
+    -------
+    H_1/N : float
+        Mean of the highest 1/N part of the waves.
+
+    Raises
+    ------
+    ValueError
+        If N is smaller than 1.
+    """
+    Hrms = np.sqrt(0.5*(Hm0**2))
+    return (((N * np.sqrt(np.pi)) / 2) * scipy.special.erfc(np.sqrt(np.log(N))) + np.sqrt(np.log(N))) * Hrms
+
+def plot_rayleigh_pdf(Hm0: float, normalize: bool = False,  ax: Axes | None = None, figsize: tuple = (8, 6)) -> tuple[Figure, Axes]:
+    """
+    Plot the probability density function of the Rayleigh distribution.
+
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    normalize : bool, optional
+        When True, the wave heights are mormalized by Hrms, by default False.
+    ax : Axes | None, optional
+        Axes on which the Layout is drawn. If None, a new Figure and Axes are created, by default None.
+    figsize : tuple, optional
+        Figure size in inches in (width, height) format, by default (8, 6).
+
+    Returns
+    -------
+    tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+            Tuple of Figure and Axes objects.
+
+    Raises
+    ------
+    TypeError
+        The passed ax argument was not of type Axes.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.grid()
         if normalize:
-            heights = np.linspace(0, 4, 100)
-            probs = []
-            
-            for height in heights:
-                prob = ((2 * height ) / (Hrms**2)) * np.exp(-(height/Hrms)**2)
-                probs.append(prob)
+            ax.set_xlabel("H/Hrms [-]")
+            ax.set_ylabel("Probability Density Function f(H/Hrms)")
         else:
-            Hrms = np.sqrt(0.5*(Hm0**2))
-            heights = np.linspace(0, 4*Hrms, 100)
-            probs = []
+            ax.set_xlabel("H [m]")
+            ax.set_ylabel("Probability Density Function f(H)")
+    else:
+        try:
+            fig = ax.get_figure()
+        except AttributeError:
+            raise TypeError from AttributeError(
+                f"Invalid type in {type(ax)} for the 'ax' argument, "
+                f"must be Matplotlib Axes object."
+            )
+    
+    Hrms = np.sqrt(0.5*(Hm0**2))
+    heights = np.linspace(0, 4*Hrms, 100)
+    probs = []
+    
+    for height in heights:
+        prob = ((2 * height ) / (Hrms**2)) * np.exp(-(height/Hrms)**2)
+        probs.append(prob)
             
-            for height in heights:
-                prob = ((2 * height ) / (Hrms**2)) * np.exp(-(height/Hrms)**2)
-                probs.append(prob)
-                
-        
-        probs = np.array(probs)
+    probs = np.array(probs)
+    if normalize:
+        ax.plot(heights/Hrms, probs, label=f"Rayleigh Hm0: {Hm0}m")
+    else:
+        ax.plot(heights, probs, label=f"Rayleigh Hm0: {Hm0}m")
+    ax.legend()
+    
+    return fig, ax
+
+def plot_rayleigh_poe(Hm0: float, normalize: bool = False,  ax: Axes | None = None, figsize: tuple = (8, 6)) -> tuple[Figure, Axes]:
+    """
+    Plot the probability of exceedance for the Rayleigh distribution.
+
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    normalize : bool, optional
+        When True, the wave heights are mormalized by Hrms, by default False.
+    ax : Axes | None, optional
+        Axes on which the Layout is drawn. If None, a new Figure and Axes are created, by default None.
+    figsize : tuple, optional
+        Figure size in inches in (width, height) format, by default (8, 6).
+
+    Returns
+    -------
+    tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+            Tuple of Figure and Axes objects.
+
+    Raises
+    ------
+    TypeError
+        The passed ax argument was not of type Axes.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.grid()
         if normalize:
-            ax.plot(heights, probs, label=f"Hm0: {Hm0}m")
+            ax.set_xlabel("H/Hrms [-]")
+            ax.set_ylabel("Probability Density Function f(H/Hrms)")
         else:
-            ax.plot(heights, probs, label=f"Hm0: {Hm0}m")
-        ax.legend()
+            ax.set_xlabel("H [m]")
+            ax.set_ylabel("Probability Density Function f(H)")
+    else:
+        try:
+            fig = ax.get_figure()
+        except AttributeError:
+            raise TypeError from AttributeError(
+                f"Invalid type in {type(ax)} for the 'ax' argument, "
+                f"must be Matplotlib Axes object."
+            )
+    
+    Hrms = np.sqrt(0.5*(Hm0**2))
+    heights = np.linspace(0, 4*Hrms, 100)
+    
+    probs = np.exp(-(heights/Hrms)**2)
+    
+    if normalize:
+        ax.plot(heights/Hrms, probs, label=f"Rayleigh Hm0: {Hm0}m")
+    else:
+        ax.plot(heights, probs, label=f"Rayleigh Hm0: {Hm0}m")
+    ax.legend()
+    
+    return fig, ax
+
+def glukhovskiy_hp(Hm0: float, depth: float, P: float) -> float:
+    """
+    Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Glukhovskiy distribution \\
+    defined by a spectral wave height :math:`H_{m0}` and a water depth.
+    
+    In 1966 Glukhovskiy proposed a shallow water wave height distribution, based on a two parameter
+    Weibull distribution. Two modifications to this distribution have been carried out by Battjes
+    (1986) and Klopman (1996). Here the Klopman modification is implemented, called the Modified
+    Glukhovskiy distribution.
+    
+    The modified distribution is given by:
+    
+    .. math::
+        f(h) = \\frac{AK}{H_{rms}}\\left(\\frac{H}{H_{rms}}\\right)^{K-1}\\exp\\left(-A\\left(\\frac{H}{H_{rms}}\\right)^{K}\\right)
         
-        return fig, ax
+    .. math::
+        F(H) = 1 - \\exp\\left(-A\\left(\\frac{H}{H_{rms}}\\right)^{K}\\right)
+    
+    Where:
+        * :math:`d` is the water depth [m].
+        * :math:`H^{*} = \\frac{H_{rms}}{d}`.
+        * :math:`K = \\frac{2}{1 - \\beta H^{*}}`
+        * :math:`A = \\left[\\Gamma\\left(\\frac{2}{K}+1\\right)\\right]^{\\frac{K}{2}}`
+        * :math:`\\beta` is an empirical parameter fitted by laboratory data to 0.7.
+        * :math:`\\Gamma` is the Gamma function.
+    
+    Klopman assumes the relation :math:`H_{m0} = \\sqrt{2}H_{rms}` to be as in the Rayleigh distribution of a narrow banded process.
+        
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    depth : float
+        Water depth [m].
+    P : float
+        Exceedance probability as a fractal [-].
+
+    Returns
+    -------
+    Hp : float
+        Wave height exceeded by P\\% of the waves.
+
+    Raises
+    ------
+    ValueError
+        If P is entered as a percentage, must be entered as P%/100.
+    
+    References
+    ----------
+    .. [1] Klopman, G. (1996): Extreme wave heights in shallow water, H2486, Delft Hydraulics, The Netherlands.
+    """
+    if P >= 1:
+            raise ValueError('Do not enter P as a percentage, but P%/100')
+    
+    Hrms = np.sqrt(0.5*(Hm0**2))
+    H_star = Hrms / depth
+    
+    K = 2 / (1-(0.7 * H_star))
+    A = scipy.special.gamma(2/K + 1)**(K/2)
+    
+    
+    Hp = Hrms * (-np.log(P)/A)**(1/K)
+    return Hp
+
+def plot_glukhovskiy_pdf(Hm0: float, depth: float, normalize: bool = False,  ax: Axes | None = None, figsize: tuple = (8, 6)) -> tuple[Figure, Axes]:
+    """
+    Plot the probability density function of the Glukhovskiy distribution.
+
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    depth : float
+        Water depth [m].
+    normalize : bool, optional
+        When True, the wave heights are mormalized by Hrms, by default False.
+    ax : Axes | None, optional
+        Axes on which the Layout is drawn. If None, a new Figure and Axes are created, by default None.
+    figsize : tuple, optional
+        Figure size in inches in (width, height) format, by default (8, 6).
+
+    Returns
+    -------
+    tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+            Tuple of Figure and Axes objects.
+
+    Raises
+    ------
+    TypeError
+        The passed ax argument was not of type Axes.
+    
+    See Also
+    --------
+    layowt.metocean.wave_functions.glukhovskiy_hp : Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Glukhovskiy distribution.
+    
+    References
+    ----------
+    .. [1] Klopman, G. (1996): Extreme wave heights in shallow water, H2486, Delft Hydraulics, The Netherlands.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.grid()
+        if normalize:
+            ax.set_xlabel("H/Hrms [-]")
+            ax.set_ylabel("Probability Density Function f(H/Hrms)")
+        else:
+            ax.set_xlabel("H [m]")
+            ax.set_ylabel("Probability Density Function f(H)")
+    else:
+        try:
+            fig = ax.get_figure()
+        except AttributeError:
+            raise TypeError from AttributeError(
+                f"Invalid type in {type(ax)} for the 'ax' argument, "
+                f"must be Matplotlib Axes object."
+            )
+    
+    Hrms = np.sqrt(0.5*(Hm0**2))
+    H_star = Hrms / depth
+    K = 2 / (1-(0.7 * H_star))
+    A = scipy.special.gamma(2/K + 1)**(K/2)
+    
+    heights = np.linspace(0, 4*Hrms, 100)
+    probs = []
+
+    probs = ((A * K)/(Hrms)) * ((heights/Hrms)**(K-1)) * np.exp(-A*((heights/Hrms)**K))
+        
+    if normalize:
+        ax.plot(heights/Hrms, probs, label=f"Glukhovskiy Hm0: {Hm0}m")
+    else:
+        ax.plot(heights, probs, label=f"Glukhovskiy Hm0: {Hm0}m")
+    ax.legend()
+    
+    return fig, ax
+
+def plot_glukhovskiy_poe(Hm0: float, depth: float, normalize: bool = False,  ax: Axes | None = None, figsize: tuple = (8, 6)) -> tuple[Figure, Axes]:
+    """
+    Plot the probability of exceedance for the Glukhovskiy distribution.
+
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    depth : float
+        Water depth [m].
+    normalize : bool, optional
+        When True, the wave heights are mormalized by Hrms, by default False.
+    ax : Axes | None, optional
+        Axes on which the Layout is drawn. If None, a new Figure and Axes are created, by default None.
+    figsize : tuple, optional
+        Figure size in inches in (width, height) format, by default (8, 6).
+
+    Returns
+    -------
+    tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+            Tuple of Figure and Axes objects.
+
+    Raises
+    ------
+    TypeError
+        The passed ax argument was not of type Axes.
+    
+    See Also
+    --------
+    layowt.metocean.wave_functions.glukhovskiy_hp : Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Glukhovskiy distribution.
+    
+    References
+    ----------
+    .. [1] Klopman, G. (1996): Extreme wave heights in shallow water, H2486, Delft Hydraulics, The Netherlands.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.grid()
+        if normalize:
+            ax.set_xlabel("H/Hrms [-]")
+            ax.set_ylabel("Probability Density Function f(H/Hrms)")
+        else:
+            ax.set_xlabel("H [m]")
+            ax.set_ylabel("Probability Density Function f(H)")
+    else:
+        try:
+            fig = ax.get_figure()
+        except AttributeError:
+            raise TypeError from AttributeError(
+                f"Invalid type in {type(ax)} for the 'ax' argument, "
+                f"must be Matplotlib Axes object."
+            )
+    
+    Hrms = np.sqrt(0.5*(Hm0**2))
+    H_star = Hrms / depth
+    K = 2 / (1-(0.7 * H_star))
+    A = scipy.special.gamma(2/K + 1)**(K/2)
+    
+    heights = np.linspace(0, 4*Hrms, 100)
+    probs = []
+
+    probs = np.exp(-A*(heights/Hrms)**K)
+        
+    if normalize:
+        ax.plot(heights/Hrms, probs, label=f"Glukhovskiy Hm0: {Hm0}m")
+    else:
+        ax.plot(heights, probs, label=f"Glukhovskiy Hm0: {Hm0}m")
+    ax.legend()
+    
+    return fig, ax
