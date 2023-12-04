@@ -1226,3 +1226,96 @@ def torsethaugen_gamma(hs: float, tp: float, limits: tuple[float, float] = (1, 1
         return limits[0]
     
     return gamma
+
+def rayleigh_hp(Hm0: float, P: float) -> float:
+    """
+    Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Rayleigh distribution \\
+    defined by a spectral wave height :math:`H_{m0}`.
+
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    P : float
+        Exceedance probability as a fractal [-].
+
+    Returns
+    -------
+    Hp : float
+        Wave height exceeded by P\\% of the waves.
+
+    Raises
+    ------
+    ValueError
+        If P is entered as a percentage, must be entered as P%/100.
+    """
+    if P >= 1:
+            raise ValueError('Do not enter P as a percentage, but P%/100')
+    
+    Hrms = np.sqrt(0.5*(Hm0**2))
+    Hp = Hrms*((-np.log(P))**(1/2))
+    return Hp
+
+def rayleigh_hn(Hm0: float, N: float) -> float:
+    """
+    Computes the maximum wave height out of N individual waves given a Rayleigh distribution \\
+    defined by a spectral wave height :math:`H_{m0}`.
+
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    N : float
+        Number of waves [-].
+
+    Returns
+    -------
+    Hn : float
+        Maximum wave height out of N waves. 
+    """
+    return Hm0/np.sqrt(2)*np.sqrt(np.log(N))
+
+def plot_rayleigh_pdf(Hm0, normalize: bool = False,  ax: Axes | None = None, figsize: tuple = (8, 6)) -> tuple[Figure, Axes]:
+        
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+            ax.grid()
+            if normalize:
+                ax.set_xlabel("H/Hrms [-]")
+                ax.set_ylabel("Probability Density Function f(H/Hrms)")
+            else:
+                ax.set_xlabel("H [m]")
+                ax.set_ylabel("Probability Density Function f(H)")
+        else:
+            try:
+                fig = ax.get_figure()
+            except AttributeError:
+                raise TypeError from AttributeError(
+                    f"Invalid type in {type(ax)} for the 'ax' argument, "
+                    f"must be Matplotlib Axes object."
+                )
+        if normalize:
+            heights = np.linspace(0, 4, 100)
+            probs = []
+            
+            for height in heights:
+                prob = ((2 * height ) / (Hrms**2)) * np.exp(-(height/Hrms)**2)
+                probs.append(prob)
+        else:
+            Hrms = np.sqrt(0.5*(Hm0**2))
+            heights = np.linspace(0, 4*Hrms, 100)
+            probs = []
+            
+            for height in heights:
+                prob = ((2 * height ) / (Hrms**2)) * np.exp(-(height/Hrms)**2)
+                probs.append(prob)
+                
+        
+        probs = np.array(probs)
+        if normalize:
+            ax.plot(heights, probs, label=f"Hm0: {Hm0}m")
+        else:
+            ax.plot(heights, probs, label=f"Hm0: {Hm0}m")
+        ax.legend()
+        
+        return fig, ax
