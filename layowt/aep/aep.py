@@ -70,7 +70,6 @@ def weibull_aep(pc: PowerCurve, weibull_a: float, weibull_k: float, units: str =
     See Also
     --------
     layowt.wtg.power_curve.PowerCurve : LayOWt PowerCurve object.
-
     scipy.integrate.simpson : Simpson's rule implemented by Scipy.
     """
     if (weibull_a <= 0) or (weibull_k <= 0):
