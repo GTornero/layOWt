@@ -14,7 +14,7 @@ def deep_wavelength(wave_period: float) -> float:
     The deep water wavelength is given by the following expression:
     
     .. math::
-        \\lambda_{deep} = \\frac{gT}{2\\pi}
+        \\lambda_{deep} = \\frac{gT^{2}}{2\\pi}
     
     Where:
         * :math:`\\lambda_{deep} = \\textrm{Deep water wavelength in metres.}`
@@ -197,7 +197,7 @@ def shallow_wavelength(depth: float, wave_period: float) -> float:
     """
     return wave_period * np.sqrt(scipy.constants.g * depth)
 
-def breaking_height(depth: float, wavelength: float) -> float:
+def dnv_breaking_height(depth: float, wavelength: float) -> float:
     """
     Calculates the breaking wave height for a regular wave in a plane sea bed.
     
@@ -230,6 +230,62 @@ def breaking_height(depth: float, wavelength: float) -> float:
         <https://www.dnv.com/oilgas/download/dnv-rp-c205-environmental-conditions-and-environmental-loads.html>
     """
     hb = 0.142 * wavelength * np.tanh(2 * np.pi * depth / wavelength)
+    return hb
+
+def goda_breaking_height(depth: float, wave_period: float, slope: float | tuple[float, float], A:float =0.17) -> float:
+    """
+    Calculates the breaking wave height for a regular wave in a sloped sea bed according to Goda 2010.
+    
+    The breaking wave height may be estimated by the following equation.
+    This estimate is considered to be conservative for seabed sloped of :math:`\\alpha > 0.1`.
+    
+    .. math::
+         H_{b} = AL_{0}\\left\\{1 - \\exp\\left[\\frac{-1.5\\pi d}{L_{0}}\\left(1 + 11 \\tan^{\\frac{4}{3}}\\alpha\\right)\\right]\\right\\}
+    
+    Where:
+    
+    * :math:`A` = 0.12 - 0.18 (0.17 is recommended)
+    * :math:`L_{0}` is the deep water wavelength
+    * :math:`\\alpha` is the sea floor slope
+    
+    Parameters
+    ----------
+    depth : float
+        The water depth [m].
+    wave_period : float
+        The wave period [s].
+    slope : float or tuple
+        The slope of the seabed [rad], or as tuple formatted as (V,H).
+    A : float, optional
+        Tuning coefficient, recommended in the range 0.12 - 0.18, by default 0.17.
+
+    Returns
+    -------
+    float
+        Breaking wave height.
+    
+    See Also
+    --------
+    layowt.metocean.wave_functions.deep_wavelength : Calculate the deep water wavelength for linear wave theory.
+    
+    References
+    ----------
+    .. [1] IEC 61400-3-1: Wind Energy Generation Systems – Part 3-1: Design Requirements for Fixed Offshore Wind Turbines, edition 4.0, 2019-02.
+        <https://webstore.iec.ch/publication/26423>
+    .. [2] Goda, Y., 2010. Random Seas and Design of Maritime Structures (3rd Edition), World Scientific, Singapore, Section 3.1.1
+        <https://www.ancientportsantiques.com/wp-content/uploads/Documents/ENGINEERING/Maritime/CoastalStructures-Goda2000.pdf>
+    .. [3] Yoshimi Goda (2010) Reanalysis of Regular and Random Breaking Wave Statistics, Coastal Engineering Journal, 52:1, 71-106, DOI: 10.1142/S0578563410002129
+        <https://www.ancientportsantiques.com/wp-content/uploads/Documents/ENGINEERING/Maritime/BW/WaveBreaking-Goda2010.pdf>
+    """
+    
+    if isinstance(slope, tuple):
+            # if so, compute the angle
+            slope = np.arctan(slope[0]/slope[1])
+    
+    L0 = deep_wavelength(wave_period=wave_period)
+    
+    hb = A * L0 * (1 - np.exp(-1.5 * np.pi * (depth / L0) * (1 + 11 * (np.tan(slope)**(4/3)))))
+    
     return hb
 
 def iribarren(slope: float, breaking_height: float, wave_period: float) -> float:
@@ -281,7 +337,8 @@ def iribarren(slope: float, breaking_height: float, wave_period: float) -> float
     See Also
     --------
     layowt.metocean.wave_functions.deep_wavelength : Calculate the deep water wavelength for linear wave theory.
-    layowt.metocean.wave_functions.breaking_height : Calculates the breaking wave height for a regular wave in a plane sea bed.
+    layowt.metocean.wave_functions.dnv_breaking_height : Calculates the breaking wave height for a regular wave in a plane sea bed.
+    layowt.metocean.wave_functions.goda_breaking_height : Calculates the breaking wave height for a regular wave in a sloped sea bed.
     
     References
     ----------
@@ -1392,10 +1449,10 @@ def plot_rayleigh_poe(Hm0: float, normalize: bool = False,  ax: Axes | None = No
         ax.grid()
         if normalize:
             ax.set_xlabel("H/Hrms [-]")
-            ax.set_ylabel("Probability Density Function f(H/Hrms)")
+            ax.set_ylabel("Probability of Exceedance F(H/Hrms)")
         else:
             ax.set_xlabel("H [m]")
-            ax.set_ylabel("Probability Density Function f(H)")
+            ax.set_ylabel("Probability of Exceedance F(H)")
     else:
         try:
             fig = ax.get_figure()
@@ -1593,10 +1650,10 @@ def plot_glukhovskiy_poe(Hm0: float, depth: float, normalize: bool = False,  ax:
         ax.grid()
         if normalize:
             ax.set_xlabel("H/Hrms [-]")
-            ax.set_ylabel("Probability Density Function f(H/Hrms)")
+            ax.set_ylabel("Probability of Exceedance F(H/Hrms)")
         else:
             ax.set_xlabel("H [m]")
-            ax.set_ylabel("Probability Density Function f(H)")
+            ax.set_ylabel("Probability of Exceedance F(H)")
     else:
         try:
             fig = ax.get_figure()
@@ -1620,6 +1677,125 @@ def plot_glukhovskiy_poe(Hm0: float, depth: float, normalize: bool = False,  ax:
         ax.plot(heights/Hrms, probs, label=f"Glukhovskiy Hm0: {Hm0}m")
     else:
         ax.plot(heights, probs, label=f"Glukhovskiy Hm0: {Hm0}m")
+    ax.legend()
+    
+    return fig, ax
+
+def forristal_hp(Hm0: float, P: float) -> float:
+    """
+    Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Forristal wave height distribution \\
+    defined by a spectral wave height :math:`H_{m0}`.
+
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    P : float
+        Exceedance probability as a fractal [-].
+
+    Returns
+    -------
+    float
+        Wave height exceeded by P\\% of the waves.
+
+    Raises
+    ------
+    ValueError
+        If P is entered as a percentage, must be entered as P%/100.
+    
+    References
+    ----------
+    .. [1] G.Z. Forristall, 2000, Wave crest distributions: Observations and second-order theory, J. of Physical Oceanography, pp. 1931-1943, Vol. 30
+        <https://journals.ametsoc.org/view/journals/phoc/30/8/1520-0485_2000_030_1931_wcdoas_2.0.co_2.xml?tab_body=pdf>
+    .. [2] DNVGL-RP-C205, 19th Edition, December 2020 - Environmental conditions and environmental loads.
+        <https://www.dnv.com/oilgas/download/dnv-rp-c205-environmental-conditions-and-environmental-loads.html>
+    .. [3] IEC 61400-3-1: Wind Energy Generation Systems – Part 3-1: Design Requirements for Fixed Offshore Wind Turbines, edition 4.0, 2019-02.
+        <https://webstore.iec.ch/publication/26423>
+    """
+    if P >= 1:
+            raise ValueError('Do not enter P as a percentage, but P%/100')
+    
+    ALPHA = 0.681
+    BETA = 2.126 
+    
+    return (-np.log(P))**(1/BETA) * ALPHA * Hm0
+
+def plot_forristal_poe(Hm0: float, normalize: bool = False,  ax: Axes | None = None, figsize: tuple = (8, 6)) -> tuple[Figure, Axes]:
+    """
+    Plot the probability of exceedance for the Forristal wave height distribution.
+    
+    The probability of exceedance is given by:
+    
+    .. math::
+        F(h) = \\exp{\\left[-\\left(\\frac{h}{\\alpha H_{m0}}\\right)^{\\beta}\\right]}
+    
+    Where:
+        * :math:`\\alpha = 0.681`.
+        * :math:`\\beta = 2.126`.
+
+    Parameters
+    ----------
+    Hm0 : float
+        Spectral wave height [m].
+    normalize : bool, optional
+        When True, the wave heights are mormalized by Hrms, by default False.
+    ax : Axes | None, optional
+        Axes on which the Layout is drawn. If None, a new Figure and Axes are created, by default None.
+    figsize : tuple, optional
+        Figure size in inches in (width, height) format, by default (8, 6).
+
+    Returns
+    -------
+    tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+            Tuple of Figure and Axes objects.
+
+    Raises
+    ------
+    TypeError
+        The passed ax argument was not of type Axes.
+    
+    See Also
+    --------
+    layowt.metocean.wave_functions.forristal_hp : Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Forristal wave height distribution.
+    
+    References
+    ----------
+    .. [1] G.Z. Forristall, 2000, Wave crest distributions: Observations and second-order theory, J. of Physical Oceanography, pp. 1931-1943, Vol. 30
+        <https://journals.ametsoc.org/view/journals/phoc/30/8/1520-0485_2000_030_1931_wcdoas_2.0.co_2.xml?tab_body=pdf>
+    .. [2] DNVGL-RP-C205, 19th Edition, December 2020 - Environmental conditions and environmental loads.
+        <https://www.dnv.com/oilgas/download/dnv-rp-c205-environmental-conditions-and-environmental-loads.html>
+    .. [3] IEC 61400-3-1: Wind Energy Generation Systems – Part 3-1: Design Requirements for Fixed Offshore Wind Turbines, edition 4.0, 2019-02.
+        <https://webstore.iec.ch/publication/26423>
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.grid()
+        if normalize:
+            ax.set_xlabel("H/Hrms [-]")
+            ax.set_ylabel("Probability of Exceedance F(H/Hrms)")
+        else:
+            ax.set_xlabel("H [m]")
+            ax.set_ylabel("Probability of Exceedance F(H)")
+    else:
+        try:
+            fig = ax.get_figure()
+        except AttributeError:
+            raise TypeError from AttributeError(
+                f"Invalid type in {type(ax)} for the 'ax' argument, "
+                f"must be Matplotlib Axes object."
+            )
+    
+    Hrms = np.sqrt(0.5*(Hm0**2))
+    
+    heights = np.linspace(0, 4*Hrms, 100)
+    probs = []
+
+    probs = np.exp(-(heights/(0.681*Hm0))**2.126)
+        
+    if normalize:
+        ax.plot(heights/Hrms, probs, label=f"Forristal Hm0: {Hm0}m")
+    else:
+        ax.plot(heights, probs, label=f"Forristal Hm0: {Hm0}m")
     ax.legend()
     
     return fig, ax
