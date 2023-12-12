@@ -12,26 +12,52 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
  
 LayOWt Version 0.7.0
 
-Minor additions to existing subpackages.
+Addition of the Goda maximum wave model and the Battjes & Groenendijk, Rayleigh, Glukhovski, and Forristal wave height distributions.
+Minor additions/fixes to existing subpackages.
  
 ### Added
 - {class}`layowt.wtg.power_curve.PowerCurve`:
     - {meth}`layowt.wtg.power_curve.PowerCurve.compare_curves` graphically compares PowerCurve instance with other PowerCurve objects.
 - {mod}`layowt.metocean.wind_functions`: Metocean wind functions module:
-    -{func}`layowt.metocean.wind_functions.vref_ewts_exact` EWTS II Exact algorithm to estimate Vref from the mean wind speed and the Weibull k value.
-    -{func}`layowt.metocean.wind_functions.vref_ewts_gumbel` EWTS II Gumbel algorithm to estimate Vref from the mean wind speed and the Weibull k value.
-    -{func}`layowt.metocean.wind_functions.vref_ewts_davenport` EWTS II Davenport algorithm to estimate Vref from the mean wind speed and the Weibull k value.
-    -{func}`layowt.metocean.wind_functions.froya` The Frøya wind profile adjustment.
-    -{func}`layowt.metocean.wind_functions.ntm` IEC Normal Turbulence Model based on Iref.
+    - {func}`layowt.metocean.wind_functions.vref_ewts_exact` EWTS II Exact algorithm to estimate Vref from the mean wind speed and the Weibull k value.
+    - {func}`layowt.metocean.wind_functions.vref_ewts_gumbel` EWTS II Gumbel algorithm to estimate Vref from the mean wind speed and the Weibull k value.
+    - {func}`layowt.metocean.wind_functions.vref_ewts_davenport` EWTS II Davenport algorithm to estimate Vref from the mean wind speed and the Weibull k value.
+    - {func}`layowt.metocean.wind_functions.froya` The Frøya wind profile adjustment.
+    - {func}`layowt.metocean.wind_functions.ntm` IEC Normal Turbulence Model based on Iref.
+    - {func}`layowt.metocean.wind_functions.etm` IEC Extreme Turbulence Model based on Iref.
+- {mod}`layowt.metocean.wave_functions`: Metocean wave functions module:
+    - {func}`layowt.metocean.wave_functions.rayleigh_hp`: Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Rayleigh distribution.
+    - {func}`layowt.metocean.wave_functions.rayleigh_hmaxn`: Computes the maximum wave height out of N individual waves given a Rayleigh distribution.
+    - {func}`layowt.metocean.wave_functions.rayleigh_hn`: Computes the mean of the highest 1/N-part of the wave heights for the given a Rayleigh distribution.
+    - {func}`layowt.metocean.wave_functions.plot_rayleigh_pdf`: Plots the probability density function of a Rayleigh distribution.
+    - {func}`layowt.metocean.wave_functions.plot_rayleigh_poe`: Plots the probability of exceedance of a Rayleigh distribution.
+    - {func}`layowt.metocean.wave_functions.glukhovskiy_hp`: Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Glukhovskiy distribution.
+    - {func}`layowt.metocean.wave_functions.plot_glukhovskiy_pdf`: Plots the probability density function of a Glukhovskiy distribution.
+    - {func}`layowt.metocean.wave_functions.plot_glukhovskiy_poe`: Plots the probability of exceedance of a Glukhovskiy distribution.
+    - {func}`layowt.metocean.wave_functions.goda_breaking_height`: Estimates the breaking wave height for a regular wave in a sloped sea bed, Goda 2010.
+    - {func}`layowt.metocean.wave_functions.forristal_hp`: Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Forristal wave height distribution.
+    - {func}`layowt.metocean.wave_functions.plot_forristal_poe`: Plots the probability of exceedance of a Forristal wave height distribution.
+- {mod}`layowt.metocean.battjes`: Battjes and Groenendijk distrtibution module:
+    - {class}`layowt.metocean.battjes.BattjesGroenendijk`: Battjes and Groenendijk distrtibution.
+        - {meth}`layowt.metocean.battjes.BattjesGroenendijk.gammainc_upper`: Upper incomplete gamma function.
+        - {meth}`layowt.metocean.battjes.BattjesGroenendijk.gammainc_lower`: Lower incomplete gamma function.
+        - {meth}`layowt.metocean.battjes.BattjesGroenendijk.get_Hp`: Computes the wave height exceeded by P% of the waves.
+        - {meth}`layowt.metocean.battjes.BattjesGroenendijk.get_Hn`: Computes the mean of the highest 1/N-part of the wave heights.
+        - {meth}`layowt.metocean.battjes.BattjesGroenendijk.plot_poe`: Plots the probability of exceedance of the distribution.
+        - {meth}`layowt.metocean.battjes.BattjesGroenendijk.plot_pdf`: Plots the probability density function of the distribution.
+- {mod}`layowt.metocean.goda`: Goda model for maximum wave height module:
+    - {class}`layowt.metocean.goda.Goda`: Goda model for maximum wave height.
+
+
 
  
 ### Changed
-
+- {func}`layowt.metocean.wave_functions.dnv_breaking_height`: Renamed from `breaking_height` to differentiate from the new Goda 2010 implementation of the breaking wave height on sloped seabeds.
 
 
 
 ### Fixed
-
+- {meth}`layowt.layouts.layout_generators.GriddedLayoutGenerator.generate_layouts`: Fixed error when trying to export layouts to file when EPSG is not specified.
 
 
 
