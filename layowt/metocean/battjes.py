@@ -46,7 +46,7 @@ class BattjesGroenendijk:
       the upwave direction from the turbine position, the greater of the two values should be \\
       positive and not greater than 0.05 rad.
     
-    * Considering the seabed slope over a dsitance of 10 deepwater wavelengths in the upwave \\
+    * Considering the seabed slope over a distance of 10 deepwater wavelengths in the upwave \\
       direction from the turbine position and the average seabed slope within each one-wavelength \\
       segment, each of the ten values of seabed slope should not differ by more than 0.02 rad \\
       from from the slope calculated above, and no value of slope should differ by more than \\
@@ -364,7 +364,7 @@ class BattjesGroenendijk:
         
         probs = np.array(probs)
         
-        ax.plot(probs*100, h_array*self.Hrms, label=f"Hm0: {self.Hm0}m, d:{self.d}m, slope: {self.slope:.2f}")
+        ax.plot(probs*100, h_array*self.Hrms, label=f"Battjes Hm0: {self.Hm0}m, d:{self.d}m, slope: {self.slope:.2f}")
         ax.legend()
         return fig, ax
     
