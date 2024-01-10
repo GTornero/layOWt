@@ -700,7 +700,7 @@ def ursell(wave_height: float, wave_length: float, depth: float) -> float:
     The Ursell number is defined as:
     
     .. math::
-        U_R = \\frac{H\\lambda^2}{h^3}
+        U_R = \\frac{H\\lambda^2}{d^3}
     
     Where:
         * :math:`H = \\textrm{Wave height in metres.}`
