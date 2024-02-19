@@ -19,5 +19,7 @@ from .wave_functions import (breaker_type, deep_wavelength, dingemans_gamma,
                              shallow_wavelength, torsethaugen_gamma,
                              tp_from_mean_period, ursell, validate_theory,
                              williams_breaking_criterion)
-from .wind_functions import (etm, froya, ntm, vref_ewts_davenport,
-                             vref_ewts_exact, vref_ewts_gumbel)
+from .wind_functions import (dnv_wind_profile, etm, froya, ntm,
+                             partial_safety_factor, vref_cov,
+                             vref_ewts_davenport, vref_ewts_exact,
+                             vref_ewts_gumbel)

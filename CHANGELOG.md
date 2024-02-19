@@ -25,6 +25,8 @@ Minor additions/fixes to existing subpackages.
     - {func}`layowt.metocean.wind_functions.froya` The Frøya wind profile adjustment.
     - {func}`layowt.metocean.wind_functions.ntm` IEC Normal Turbulence Model based on Iref.
     - {func}`layowt.metocean.wind_functions.etm` IEC Extreme Turbulence Model based on Iref.
+    - {func}`layowt.metocean.wind_functions.vref_cov` Computes de Coefficient of Variation of the 50-year return 10-minute wind speed.
+    - {func}`layowt.metocean.wind_functions.partial_safety_factor` Computes the load partial safety factor for the DLC 6.1 and 6.2 50-year 10-minute extreme wind speed.
 - {mod}`layowt.metocean.wave_functions`: Metocean wave functions module:
     - {func}`layowt.metocean.wave_functions.rayleigh_hp`: Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Rayleigh distribution.
     - {func}`layowt.metocean.wave_functions.rayleigh_hmaxn`: Computes the maximum wave height out of N individual waves given a Rayleigh distribution.
@@ -37,6 +39,7 @@ Minor additions/fixes to existing subpackages.
     - {func}`layowt.metocean.wave_functions.goda_breaking_height`: Estimates the breaking wave height for a regular wave in a sloped sea bed, Goda 2010.
     - {func}`layowt.metocean.wave_functions.forristal_hp`: Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Forristal wave height distribution.
     - {func}`layowt.metocean.wave_functions.plot_forristal_poe`: Plots the probability of exceedance of a Forristal wave height distribution.
+    - {func}`layowt.metocean.wave_functions.forristal_crest_cp`: Computes the crest height exceeded by P% of the waves, :math:`H_{P}` of a Forristal crest height distribution.
 - {mod}`layowt.metocean.battjes`: Battjes and Groenendijk distrtibution module:
     - {class}`layowt.metocean.battjes.BattjesGroenendijk`: Battjes and Groenendijk distrtibution.
         - {meth}`layowt.metocean.battjes.BattjesGroenendijk.gammainc_upper`: Upper incomplete gamma function.

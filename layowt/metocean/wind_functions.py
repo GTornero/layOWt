@@ -369,3 +369,86 @@ def dnv_wind_profile(u: float, T: int, T0: int, h_ref: float, z: float) -> float
     """
     correction_factor = 1 + 0.137 * np.log(z / h_ref) - 0.045 * np.log(T / T0)
     return u * correction_factor
+
+def vref_cov(v50: float, v100: float) -> float:
+    """
+    Coefficient of Variation of the 50-year return 10-minute wind speed.
+    
+    Computes de Coefficient of Variation of the 50-year return 10-minute wind speed according to the IEC formulation.
+    
+    The Coefficient of Variation is given by:
+
+    .. math::
+        COV = \\frac{\\sigma}{\\mu} = \\frac{\\pi}{6}\\frac{1}{\\frac{\\beta}{\\alpha} + 0.5772}
+    
+    Where:
+        * :math:`\\alpha = \\frac{V_{100} - V_{50}}{p_{100} - p_{50}}`.
+        * :math:`\\beta = V_{50} - \\alpha p_{50}`.
+        * :math:`p_{50} = -\\ln \\left(-ln \\left(1 - \\frac{1}{50}\\right)\\right)`.
+        * :math:`p_{100} = -\\ln \\left(-ln \\left(1 - \\frac{1}{100}\\right)\\right)`.
+
+    Parameters
+    ----------
+    v50 : float
+        The 10-minute 50-year return extreme wind speed in m/s.
+    v100 : float
+        The 10-minute 100-year return extreme wind speed in m/s.
+
+    Returns
+    -------
+    float
+        Coefficient of Variation of the 50-year return 10-minute wind speed.
+    
+    References
+    ----------
+    .. [1] IEC 61400-1: Wind Energy Generation Systems – Part 1: Design Requirements, edition 4.0, 2019-02.
+        <https://webstore.iec.ch/publication/26423>
+    """
+    
+    p50 = -np.log(-np.log(1-1/50))
+    p100 = -np.log(-np.log(1-1/100))
+    
+    alpha = (v100 - v50) / (p100 - p50)
+    beta = v50 - (alpha * p50)
+    
+    cov = (np.pi / 6) * (1 / ((beta / alpha) + 0.5772))
+    
+    return cov
+
+def partial_safety_factor(cov: float) -> float:
+    """
+    Load Partial Safety Factor.
+    
+    Computes the load partial safety factor for the DLC 6.1 and 6.2 50-year 10-minute extreme wind speed \\
+    based on the Coefficient of Variation of the 50-year return 10-minute wind speed.
+    
+    The extreme wind speed for DLCs 6.1 and 6.2 assumed a Coefficient of Variation of less than 15%.
+    If the COV is larger than 15%, they can be increased by :math:`\\tilde{V}_{50} = \\sqrt{\\mu}V_{50}` \\
+    where the factor :math:'\\mu' is given by the linear interpolation of 1 at COV = 15% and 1.15 at COV = 30%.
+
+    Parameters
+    ----------
+    cov : float
+        Coefficient of Variation of the 50-year return 10-minute wind speed.
+
+    Returns
+    -------
+    float
+        Load Partial Safety Factor :math:'\\sqrt{\\mu}' for DLCs 6.1 and 6.2.
+    
+    See Also
+    --------
+    layowt.metocean.wind_functions.vref_cov : Computes de Coefficient of Variation of the 50-year return 10-minute wind speed according to the IEC formulation.
+    
+    References
+    ----------
+    .. [1] IEC 61400-1: Wind Energy Generation Systems – Part 1: Design Requirements, edition 4.0, 2019-02.
+        <https://webstore.iec.ch/publication/26423>
+    """
+    
+    if cov <= 0.15:
+        return 1
+    elif cov > 0.3:
+        return np.sqrt(1.15)
+    else:
+        return np.sqrt(1 + (cov - 0.15))
