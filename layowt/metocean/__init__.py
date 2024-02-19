@@ -6,9 +6,9 @@ from .goda import Goda
 from .wave import Wave
 from .wave_functions import (breaker_type, deep_wavelength, dingemans_gamma,
                              dingemans_tp, dnv_breaking_height, dnv_gamma,
-                             forristal_hp, gamma_from_mean_periods,
-                             glukhovskiy_hp, goda_breaking_height,
-                             intermediate_wavelength,
+                             forristal_crest_cp, forristal_hp,
+                             gamma_from_mean_periods, glukhovskiy_hp,
+                             goda_breaking_height, intermediate_wavelength,
                              intermediate_wavelength_approx, iribarren,
                              jonswap, pierson_moskowitz, plot_forristal_poe,
                              plot_glukhovskiy_pdf, plot_glukhovskiy_poe,

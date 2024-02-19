@@ -1799,3 +1799,23 @@ def plot_forristal_poe(Hm0: float, normalize: bool = False,  ax: Axes | None = N
     ax.legend()
     
     return fig, ax
+
+def forristal_crest_cp(Hm0: float, t1: float, d: float, P: float, sea_type: str = "2D"):
+        
+    if sea_type.lower() not in ["2d", "3d"]:
+        raise ValueError(f"Invalid input for sea_type. Must be one of '2D' or '3D'. {sea_type=} passed.")
+    
+    lambda1 = intermediate_wavelength(depth=d, wave_period=t1)
+    wave_number = 2 * np.pi / lambda1
+
+    steepness = (2 * np.pi / scipy.constants.g) * Hm0 / (t1**2)
+    ursell = Hm0 / ((wave_number**2)*(d)**3)
+    
+    if sea_type.lower() == '2d':
+        alpha = 0.3536 + (0.2892 * steepness) + (0.1060 * ursell)
+        beta = 2 - (2.1597 * steepness) + (0.0968 * (ursell**2))
+    else:
+        alpha = 0.3536 + (0.2568 * steepness) + (0.0800 * ursell)
+        beta = 2 - (1.7912 * steepness) + (0.5302 * ursell) + (0.2824 * (ursell**2))
+        
+    return alpha * Hm0 * (-np.log(P))**(1/beta)
