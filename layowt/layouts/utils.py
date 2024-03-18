@@ -728,7 +728,7 @@ def _get_grid_params(layout):
             layout.grid.n_rows, layout.grid.n_cols, layout.grid.row_offset,
             layout.grid.col_offset, layout.grid.x_shear, layout.grid.y_shear,
             layout.grid.origin[0], layout.grid.origin[1], layout.grid.scale,
-            layout.n_wtg, layout.epsg)
+            layout.n_wtg, layout.epsg, layout.grid.shortest_distance)
 
 def _layouts_to_coords_array(layouts, start: int = 0):
     layout_dt = np.dtype({"names": ["id", "x", "y"],
@@ -756,8 +756,8 @@ def _layouts_to_info_array(layouts, start: int = 0):
     info_array = (np.arange(start, start + len(layouts)), *vect_get_grid_params(np.array(layouts)))
     info_array = np.stack(info_array, axis=1)
     
-    names = ["id", "angle", "row_step", "col_step", "n_rows", "n_cols", "row_offset", "col_offset", "x_shear", "y_shear", "origin_x", "origin_y", "scale", "n_wtg", "epsg"]
-    formats = [(float)]*15
+    names = ["id", "angle", "row_step", "col_step", "n_rows", "n_cols", "row_offset", "col_offset", "x_shear", "y_shear", "origin_x", "origin_y", "scale", "n_wtg", "epsg", "shortest_distance"]
+    formats = [(float)]*16
     info_dt = np.dtype({"names": names,
                     'formats': formats})
     info_array.dtype = info_dt
