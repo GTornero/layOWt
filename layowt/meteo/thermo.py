@@ -4,6 +4,10 @@ import numpy as np
 def saturation_vapor_pressure(temp):
     """
     Calculates the saturation vapor (partial) pressure from temperature in degrees.
+    
+    Saturation vapor pressure is given by the formula from Bolton 1980 for temperature T in degrees Celcius:
+    
+    .. math:: svp = 6.112 e^\\frac{17.67T}{T + 243.5}
 
     Parameters
     ----------
@@ -12,13 +16,23 @@ def saturation_vapor_pressure(temp):
 
     Returns
     -------
-        Saturation water vapor (partial) pressure in Hectopascals [hPa].
+        Saturation vapor (partial) pressure in Hectopascals [hPa].
+    
+    See Also
+    --------
+    layowt.meteo.thermo.vapor_pressure : Calculates the vapor pressure from the relative humidity and saturation vapor pressure.
+    layowt.meteo.thermo.dewpoint : Calculates the dewpoint temperature in degrees celcius from the vapor pressure.
+    
+    References
+    ----------
+    .. [1] [Bolton1980] Bolton, D., 1980: The computation of equivalent potential temperature. Mon. Wea. Rev., 108, 1046-1053, doi:10.1175/1520-0493(1980)108%3C1046:TCOEPT%3E2.0.CO;2.
+        <https://journals.ametsoc.org/view/journals/mwre/108/7/1520-0493_1980_108_1046_tcoept_2_0_co_2.xml>
     """
     return 6.112 * np.exp((17.67 * temp) / (temp + 243.5))
 
 def vapor_pressure(rel_humidity, svp):
     """
-    Calculates the vapor pressure from the relative humidity and saturation vapor pressure.
+    Calculates the vapor (partial) pressure from the relative humidity and saturation vapor pressure.
 
     Parameters
     ----------
@@ -36,7 +50,12 @@ def vapor_pressure(rel_humidity, svp):
 
 def dewpoint(vapor_pressure):
     """
-    Calculates the dewpoint temperature in degrees celcius from the vapor pressure.
+    Calculates the ambient dewpoint temperature in degrees celcius from the vapor pressure.
+    
+    The dewpoint temperature is calculated by inverting the Bolton 1980 formula for saturation
+    vapor pressure to calculate temperature:
+    
+    .. math:: T = \\frac{243.5 \\log(e / 6.112)}{17.67 - \\log(e / 6.112)}
 
     Parameters
     ----------
@@ -47,13 +66,24 @@ def dewpoint(vapor_pressure):
     -------
     float
         Dewpoint temperature in degrees Celcius.
+    
+    See Also
+    --------
+    layowt.meteo.thermo.saturation_vapor_pressure : Calculates the saturation vapor (partial) pressure from temperature in degrees.
+    layowt.meteo.thermo.vapor_pressure : Calculates the vapor pressure from the relative humidity and saturation vapor pressure.
+    layowt.meteo.thermo.dewpoint_from_rh : Calculates the dewpoint temperature in degrees Celcius from air temperature and relative humidity.
+    
+    References
+    ----------
+    .. [1] [Bolton1980] Bolton, D., 1980: The computation of equivalent potential temperature. Mon. Wea. Rev., 108, 1046-1053, doi:10.1175/1520-0493(1980)108%3C1046:TCOEPT%3E2.0.CO;2.
+        <https://journals.ametsoc.org/view/journals/mwre/108/7/1520-0493_1980_108_1046_tcoept_2_0_co_2.xml>
     """
     val = np.log(vapor_pressure / 6.112)
     return (243.5 * val) / (17.67-val)
 
 def dewpoint_from_rh(temp, rh):
     """
-    Calculates the dewpoint temperature in degrees Celcius from air temperature and relative humidity.
+    Calculates the ambient dewpoint temperature in degrees Celcius from air temperature and relative humidity.
     
 
     Parameters
@@ -67,6 +97,12 @@ def dewpoint_from_rh(temp, rh):
     -------
     float
         Dewpoint temperature in degrees Celcius.
+    
+    See Also
+    --------
+    layowt.meteo.thermo.saturation_vapor_pressure : Calculates the saturation vapor (partial) pressure from temperature in degrees.
+    layowt.meteo.thermo.vapor_pressure : Calculates the vapor pressure from the relative humidity and saturation vapor pressure.
+    layowt.meteo.thermo.dewpoint : Calculates the ambient dewpoint temperature in degrees celcius from the vapor pressure.
     """
     return dewpoint(vapor_pressure(rh, saturation_vapor_pressure(temp)))
 
