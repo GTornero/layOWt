@@ -56,7 +56,7 @@ Minor additions/fixes to existing subpackages.
  
 ### Changed
 - {func}`layowt.metocean.wave_functions.dnv_breaking_height`: Renamed from `breaking_height` to differentiate from the new Goda 2010 implementation of the breaking wave height on sloped seabeds.
-
+- {func}`layowt.layouts.utils.layouts_to_hdf5` function now includes the shortest distance between turbines in the "info" dataset in the HDF5 file.
 
 
 ### Fixed

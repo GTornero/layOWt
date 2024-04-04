@@ -728,7 +728,7 @@ def _get_grid_params(layout):
             layout.grid.n_rows, layout.grid.n_cols, layout.grid.row_offset,
             layout.grid.col_offset, layout.grid.x_shear, layout.grid.y_shear,
             layout.grid.origin[0], layout.grid.origin[1], layout.grid.scale,
-            layout.n_wtg, layout.epsg, layout.grid.shortest_distance)
+            layout.n_wtg, layout.epsg, layout.shortest_distance)
 
 def _layouts_to_coords_array(layouts, start: int = 0):
     layout_dt = np.dtype({"names": ["id", "x", "y"],
@@ -892,6 +892,7 @@ def layouts_from_hdf5(filepath: str, start_id: int = 0, end_id: int | None = Non
         row_dict["origin"] = (row_dict["origin_x"], row_dict["origin_y"])
         row_dict.pop("origin_x")
         row_dict.pop("origin_y")
+        row_dict.pop("shortest_distance")
         grid = Grid(**row_dict)
         
         geom = MultiPoint(list(zip(coords_array[coords_array["id"] == info_row["id"]]["x"], coords_array[coords_array["id"] == info_row["id"]]["y"])))
