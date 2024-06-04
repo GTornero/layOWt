@@ -938,11 +938,11 @@ class FloatingLayout(Layout):
         super().to_shapefile(filepath, epsg)
         
         if epsg is None and self.epsg is not None:
-            crs = pyproj.CRS.from_epsg(self.epsg).to_dict()
+            crs = pyproj.CRS.from_epsg(self.epsg).to_wkt()
         elif epsg is None and self.epsg is None:
             raise ValueError("No EPSG code provided.")
         elif _is_epsg(epsg):
-            crs = pyproj.CRS.from_epsg(epsg).to_dict()
+            crs = pyproj.CRS.from_epsg(epsg).to_wkt()
         
         if self.has_moorings:
             # TODO: Create a more detailed attribute schema (wakes, water depth, etc.).

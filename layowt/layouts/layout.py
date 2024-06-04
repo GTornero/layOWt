@@ -1120,14 +1120,14 @@ class Layout:
         """
         
         if epsg is None and self.epsg is not None:
-            crs = pyproj.CRS.from_epsg(self.epsg).to_dict()
+            crs = pyproj.CRS.from_epsg(self.epsg).to_wkt()
         elif epsg is None and self.epsg is None:
             raise ValueError("No EPSG code provided.")
         elif _is_epsg(epsg):
-            crs = pyproj.CRS.from_epsg(epsg).to_dict()
+            crs = pyproj.CRS.from_epsg(epsg).to_wkt()
             
         # TODO: Create a more detailed attribute schema (wakes, water depth, etc.).
-        schema = {"geometry": "Point", "properties": {"id": "int"}}
+        schema = {"geometry": "Point", "properties": {"id": "int", "bathymetry": "float"}}
 
         driver = "ESRI Shapefile"
 
@@ -1135,7 +1135,10 @@ class Layout:
             filepath, "w", crs=crs, driver=driver, schema=schema
         ) as new_file:
             for idx, geom in enumerate(self.geom.geoms, start=1):  # type: ignore
-                new_file.write({"geometry": mapping(geom), "properties": {"id": idx}})
+                if self.has_bathymetry():
+                    new_file.write({"geometry": mapping(geom), "properties": {"id": idx, "bathymetry": self.samples[idx-1]}})
+                else:
+                    new_file.write({"geometry": mapping(geom), "properties": {"id": idx, "bathymetry": None}})
     
     @staticmethod
     def database_engine(username: str, password: str, host: str = "ow-postgre.postgres.database.azure.com", db_name: str = "corp_ta_ea", dialect: str = "postgresql", echo: bool = False) -> sa.engine.Engine:

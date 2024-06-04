@@ -899,7 +899,7 @@ def layouts_from_hdf5(filepath: str, start_id: int = 0, end_id: int | None = Non
         
         layout = layout_class(grid=grid)
         layout.geom = geom
-        layout.epsg = info_row["epsg"]
+        layout.epsg = int(info_row["epsg"])
         layouts.append(layout)
     
     return layouts

@@ -68,6 +68,7 @@ Minor additions/fixes to existing subpackages.
 
 ### Fixed
 - {meth}`layowt.layouts.layout_generators.GriddedLayoutGenerator.generate_layouts`: Fixed error when trying to export layouts to file when EPSG is not specified.
+- {meth}`layowt.layouts.layout.Layout.to_shapefile`: Fixed a bug where some EPSG codes would not be exported correctly to a Shapefile CRS.
 
 
 
