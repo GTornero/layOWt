@@ -1,7 +1,9 @@
 """ 
 Statistics Module.
 """
+from typing import Iterable
 
+import numpy as np
 from scipy.special import gamma
 
 
@@ -46,3 +48,21 @@ def weibull_mean(weibull_a: float, weibull_k: float) -> float:
         raise ValueError(f"a and k must be positive values. {weibull_a=}, {weibull_k=} passed.")
     
     return weibull_a * gamma(1 + 1 / weibull_k)
+
+def symmetric_slope(x: Iterable[float], y: Iterable[float]) -> float:
+    """
+    Calculate the symmetric slope between two linear variables 'x' and 'y'.
+
+    Parameters
+    ----------
+    x : Iterable[float]
+        Linear variable 'x'
+    y : Iterable[float]
+        Linear variable 'y'
+
+    Returns
+    -------
+    float
+        Symmetric slope between the linear variables 'x' and 'y'.
+    """
+    return np.sqrt(np.sum(np.power(x,2)) / np.sum(np.power(y,2)))

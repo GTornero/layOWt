@@ -16,6 +16,8 @@ Addition of the Goda maximum wave model and the Battjes & Groenendijk, Rayleigh,
 Minor additions/fixes to existing subpackages.
  
 ### Added
+- {mod}`layowt.stats`: Statistics module:
+    - {func}`layowt.stats.stats.symmetric_slope` Calculates the symmetric slope between two linear variables.
 - {mod}`layowt.meteo`: Metocean module:
     - {func}`layowt.meteo.thermo.saturation_vapor_pressure` Calculates the saturation vapor (partial) pressure from temperature in degrees.
     - {func}`layowt.meteo.thermo.vapor_pressure` Calculates the vapor pressure from the relative humidity and saturation vapor pressure.
