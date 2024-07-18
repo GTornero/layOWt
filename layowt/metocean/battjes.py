@@ -5,6 +5,8 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from scipy.optimize import fsolve
 
+from layowt.metocean.wave_functions import rayleigh_hp
+
 
 class BattjesGroenendijk:
     """
@@ -233,17 +235,23 @@ class BattjesGroenendijk:
 
         return [eq_continuity, eq7]
 
-    def get_Hp(self, P):
+    def get_Hp(self, P: float, converge_to_rayleigh: bool=False):
         """
         Computes :math:`H_{P}`.
 
         This method computes the wave height exceeded by P% of the
         waves.
+        
+        The wave height estimate can be made to converge to the Rayleigh estimate for deeper water
+        depths by setting `converge_to_rayleigh` to True. The criteria for convergence is that the
+        Battjes estimate must not exceed the Rayleigh estimate, and that Htr_tilde >= 2.75.
 
         Parameters
         ----------
         P : float
             Exceedance probability as a fractal [-].
+        converge_to_rayleigh : bool
+            Determines if the model shuold converge to the Rayleigh distribution for deeper water depths.
 
         Returns
         -------
@@ -254,6 +262,11 @@ class BattjesGroenendijk:
         ------
         ValueError
             If P is entered as a percentage, must be entered as P%/100.
+        
+        References
+        ----------
+        .. [1] Caires, Sofia & Gent, Marcel. (2010). Wave height distribution in constant and finite depths. Coastal Engineering Proceedings. 1. 10.9753/icce.v33.waves.15.
+            <https://www.researchgate.net/publication/259260987_Wave_height_distribution_in_constant_and_finite_depths>
         """
         if P >= 1:
             raise ValueError('Do not enter P as a percentage, but P%/100')
@@ -261,10 +274,15 @@ class BattjesGroenendijk:
         H_CWD_1 = self.H1_tilde*(-np.log(P))**(1/self.k1)
 
         if H_CWD_1 <= self.Htr_tilde:
-            return H_CWD_1*self.Hrms
+            hp = H_CWD_1*self.Hrms
         else:
             H_CWD_2 = self.H2_tilde*(-np.log(P))**(1/self.k2)
-            return H_CWD_2*self.Hrms
+            hp = H_CWD_2*self.Hrms
+        
+        if converge_to_rayleigh and (hp < rayleigh_hp(Hm0=self.Hm0, P=P)) and (self.Htr_tilde >= 2.75):
+            return rayleigh_hp(Hm0=self.Hm0, P=P)
+        
+        return hp
 
     def get_Hn(self, N):
         """

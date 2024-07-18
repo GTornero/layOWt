@@ -13,12 +13,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 LayOWt Version 0.7.0
 
 Addition of the Goda maximum wave model and the Battjes & Groenendijk, Rayleigh, Glukhovski, and Forristal wave height distributions.
+Addition of the symmetric slope function to the stats module.
+Addition of a new turbulence module with a Normal Turbulence Model and a Frandsen Turbulence Model.
+Addition of a new
 Minor additions/fixes to existing subpackages.
  
 ### Added
+- {mod}`layowt.turbulence`: Turbulence Intensity module:
+    - {class}`layowt.turbulence.ntm.NTM`: Normal Turbulence Model Class.
+        - {meth}`layowt.turbulence.ntm.NTM.fit_model`: Fit the selected Normal Turbulence Model to the data.
+        - {meth}`layowt.turbulence.ntm.NTM.plot_sigma`: Plot the Normal Turbulence Model wind speed standard deviation vs wind speed.
+        - {meth}`layowt.turbulence.ntm.NTM.plot_sigma_sigma`: Plot the Normal Turbulence Model standard deviation of the wind speed standard deviation vs wind speed.
+        - {meth}`layowt.turbulence.ntm.NTM.plot_ntm`: Plot the Normal Turbulence Model turbulence intensity curves vs wind speed.
 - {mod}`layowt.stats`: Statistics module:
     - {func}`layowt.stats.stats.symmetric_slope` Calculates the symmetric slope between two linear variables.
-- {mod}`layowt.meteo`: Metocean module:
+- {mod}`layowt.meteo`: Metorology module:
     - {func}`layowt.meteo.thermo.saturation_vapor_pressure` Calculates the saturation vapor (partial) pressure from temperature in degrees.
     - {func}`layowt.meteo.thermo.vapor_pressure` Calculates the vapor pressure from the relative humidity and saturation vapor pressure.
     - {func}`layowt.meteo.thermo.dewpoint` Calculates the dewpoint temperature in degrees celcius from the vapor pressure.
@@ -34,6 +43,8 @@ Minor additions/fixes to existing subpackages.
     - {func}`layowt.metocean.wind_functions.etm` IEC Extreme Turbulence Model based on Iref.
     - {func}`layowt.metocean.wind_functions.vref_cov` Computes de Coefficient of Variation of the 50-year return 10-minute wind speed.
     - {func}`layowt.metocean.wind_functions.partial_safety_factor` Computes the load partial safety factor for the DLC 6.1 and 6.2 50-year 10-minute extreme wind speed.
+    - {func}`layowt.metocean.wind_functions.DNV_ntm` DNV Offshore Normal Turbulence Model based on Iref, ta, tb, and the Charnock constant.
+    - {func}`layowt.metocean.wind_functions.iec_offshore_turbulence` IEC Offshore Normal Turbulence Model using the surface roughness derived from the Charnock expression.
 - {mod}`layowt.metocean.wave_functions`: Metocean wave functions module:
     - {func}`layowt.metocean.wave_functions.rayleigh_hp`: Computes the wave height exceeded by P% of the waves, :math:`H_{P}` of a Rayleigh distribution.
     - {func}`layowt.metocean.wave_functions.rayleigh_hmaxn`: Computes the maximum wave height out of N individual waves given a Rayleigh distribution.

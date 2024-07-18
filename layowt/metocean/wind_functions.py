@@ -2,6 +2,8 @@ from typing import Iterable
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.constants import g
+from scipy.optimize import fsolve
 from scipy.special import gamma
 
 
@@ -229,7 +231,7 @@ def froya(u: float, T: int, T0: int, h_ref: float, z: float) -> float:
 
 def ntm(i_ref: float, ws: Iterable[float] | None=None, a: float = 0.75, b: float = 5.6) -> NDArray[np.float64]:
     """
-    Normal Turbulence Model defined by the IEC.
+    Normal Turbulence Model defined by the IEC 61400-1.
     
     Calculates the Normal Turbulence profile vs wind speed for the standard IEC wind turbine classes.
     
@@ -266,7 +268,7 @@ def ntm(i_ref: float, ws: Iterable[float] | None=None, a: float = 0.75, b: float
         <https://webstore.iec.ch/publication/26423>
     """
     if ws is None:
-        ws_array = np.arange(0.1, 35, 0.1, dtype=np.float64)
+        ws_array = np.arange(0.1, 35.1, 0.1, dtype=np.float64)
     else:
         ws_array = np.array(ws, dtype=np.float64)
     
@@ -323,6 +325,179 @@ def etm(i_ref: float, vave: float = 10, ws: Iterable[float] | None=None) -> NDAr
     ti = sigma / ws_array
     
     return ti
+
+def DNV_ntm(i_ref: float, hub_height: float, ta: float, tb: float, charnock: float, ws: Iterable[float] | None = None):
+    """
+    DNV Offshore Normal Turbulence Model defined by the DNV-ST-0437 Loads and Site Conditions for Wind Turbines 2021.
+    
+    Calculates the Normal Turbulence profile vs wind speed for the DNV Offshore wind turbine classes.
+    
+    The normal turbulence model is given by:
+
+    .. math::
+        \\sigma_{1} = \\frac{8V_{hub}}{ln\\left(\\frac{z_{hub}}{z_0}\\right)} + t_{a}I_{ref} - 0.0025V_{hub}^2 - t_{b}V_{hub}
+    
+    Where:
+        * :math:`V_{hub}` is the 10-minute average wind speed at hub height in m/s.
+        * :math:`z_{hub}` is the hub height in m.
+        * :math:`I_{ref}` is the representative value of the wind speed turbulence intensity.
+        * :math:`t_{a}` is the turbulence offset factor.
+        * :math:`t_{b}` is the turbulence shape factor.
+        * :math:`\\sigma_{1}` is the representative 10-minute standard deviation of the longitudinal wind speed at hub height.
+        * :math:`z_{0}` is the surface roughness parameter which may be solved implicitly from the following equation for neutral atmospheric conditions:
+    
+    .. math::
+        z_{0} = \\frac{A_{c}}{g}\\left(\\frac{kV_{hub}}{ln\\left(\\frac{z_{hub{}}{z_{0}}\\right)}\\right)^2
+    
+    Where:
+        * :math:`z_{0}` is the surface roughness.
+        * :math:`g` is ~ 9.81 m/s2 is the acceleration due to gravity.
+        * :math:`k` = 0.4 is von Karman's constant.
+        * :math:`A_{c}` is Charnock's constant.
+
+    Parameters
+    ----------
+    i_ref : float
+        The reference value of representative ambient turbulence.
+    hub_height : float
+        Hub height in m.
+    ta : float
+        Turbulence Offset Factor.
+    tb : float
+        Turbulence Shape Factor.
+    charnock : float
+        Charnock's constant.
+    ws : Iterable[float] | None, optional
+        The wind speed values at which to calculate the normal turbulence model profile, by default None.
+
+    Returns
+    -------
+    NDArray[np.float64]
+        Array of ambient turbulence values at the specified wind speeds.
+    
+    References
+    ----------
+    .. [1] DNV-ST-0437: Loads and Site Conditions for Wind Turbines, November 2021.
+        <https://webstore.iec.ch/publication/26423>
+    """
+    def _solver(x, hub_height, v_hub, charnock):
+        
+        KARMAN = 0.4
+        surface_rough = (charnock / 9.81) * ((KARMAN * v_hub) / (np.log(hub_height / x[0])))**2 - x[0]
+        
+        return [surface_rough]
+    
+    if ws is None:
+        ws_array = np.arange(0.1, 35.1, 0.1, dtype=np.float64)
+    else:
+        ws_array = np.array(ws, dtype=np.float64)
+    
+    rough = []
+    
+    for v_hub in ws_array:
+        rough.append(fsolve(_solver, x0=0.001, args=(hub_height, v_hub, charnock))[0])
+    
+    rough = np.array(rough)
+    
+    sigma = ((8 * ws_array) / (np.log(hub_height / rough))) + (ta * i_ref) - (0.0025 * ws_array**2) - (tb * ws_array)
+    
+    ti = sigma / ws_array
+    
+    return ti
+
+def iec_offshore_turbulence(hub_height: float, ws: Iterable[float] | None = None, charnock: float=0.011, i_15: float=0.06, d: float=4, as_ti: bool=True):
+    """
+    IEC Offshore Normal Turbulence Model defined by the IEC 61400-3-1 Design Requirements for \\
+    Fixed Offshore Wind Turbines 2019 Section 6.4.3.3.
+    
+    This method can be used when no site data for turbulence is available. The turbulence standard
+    deviation :math:`\\sigma_{1}` may be estimated using the surface roughness parameter :math:`z_{0}`
+    derived from the Charnock expression for atmospheric conditions that are near-neutral.
+    
+    The roughness of the sea surface increases with wind speed and thus the turbulence intensity
+    will increase as a function of wind speed in near-neutral conditions. At many offshore sites,
+    it has been found that average turbulence intensity offshore is high at low wind speeds,
+    decreases to a minimum at wind speeds of approximately 8 to 12 m/s (at 10m reference height)
+    and then increases slowly with increasing wind speed.
+    
+    A Charnock constant of 0.011 is recommended for open sea, and 0.034 may be used for near-coastal
+    locations. The surface roughness parameter and resulting turbulence standard deviation
+    calculated using the Charnock equation apply for open sea conditions. Care should be taken in
+    cases where the influence of shore topology and onshore roughness may lead to higher values of
+    turbulence standard deviation. Use of high value of the coefficient is recommended unless site
+    specific data confirm otherwise.
+    
+    The use of the assumption of near-neutral conditions will, in general, give low average values
+    for the standard deviation of the longitudinal wind speed component and is not valid for
+    representing tropical cyclone conditions.
+    
+    The Normal Turbulence Model is given by:
+    
+    .. math::
+        \\sigma_{1} = \\frac{V_{hub}}{\\ln\\left(\\frac{z_{hub}}{z_{0}}\\right)} + 1.28 d I_{15}
+    
+    Where:
+        * :math:`V_{hub}` is the 10-minute average wind speed at hub height in m/s.
+        * :math:`z_{hub}` is the hub height in m.
+        * :math:`d` = 4 m/s (differs from 1.44 m/s recommended in IEC 61400-1).
+        * :math:`I_15` is the average value of hub height turbulence intensity determined at :math:`V_{hub}` = 15 m/s.
+        * :math:`z_{0}` is the surface roughness parameter which may be solved implicitly from the following equation for neutral atmospheric conditions:
+    
+    .. math::
+        z_{0} = \\frac{A_{C}}{g}\\left[\\frac{\\kappa V_{hub}}{\\ln\\left(\\frac{z_{hub}}{z_{0}}\\right)}\\right]^2
+    
+    Where:
+        * :math:`z_{0}` is the surface roughness.
+        * :math:`g` is ~ 9.81 m/s2 is the acceleration due to gravity.
+        * :math:`k` = 0.4 is von Karman's constant.
+        * :math:`A_{c}` is Charnock's constant.
+
+    Parameters
+    ----------
+    hub_height : float
+        Hub height in m.
+    ws : Iterable[float] | None, optional
+        _description_, by default None.
+    charnock : float, optional
+        Charnock constant, by default 0.011.
+    i_15 : float, optional
+        average value of hub height turbulence intensity determined at 15 m/s, by default 0.06.
+    d : float, optional
+        Factor multiplying the I15, by default 4 m/s.
+    as_ti : bool, optional
+        Whether to return values as TI [-] or standard deviation [m/s], by default True.
+    
+    References
+    ----------
+    .. [1] IEC 61400-3-1: Wind Energy Generation Systems – Part 3-1: Design Requirements for Fixed Offshore Wind Turbines, edition 4.0, 2019-02.
+        <https://webstore.iec.ch/publication/26423>
+    """
+    def _solver(x, hub_height, v_hub, charnock):
+        
+        KARMAN = 0.4
+        surface_rough = (charnock / 9.81) * ((KARMAN * v_hub) / (np.log(hub_height / x[0])))**2 - x[0]
+        
+        return [surface_rough]
+    
+    if ws is None:
+        ws_array = np.arange(0.1, 35.1, 0.1, dtype=np.float64)
+    else:
+        ws_array = np.array(ws, dtype=np.float64)
+    
+    rough = []
+    
+    for v_hub in ws_array:
+        rough.append(fsolve(_solver, x0=0.001, args=(hub_height, v_hub, charnock))[0])
+        
+    rough = np.array(rough)
+    
+    sigma = (ws_array / np.log(hub_height / rough)) + (1.28 * d * i_15)
+    
+    if as_ti:
+        return sigma / ws_array
+    else:
+        return sigma
+    
 
 def dnv_wind_profile(u: float, T: int, T0: int, h_ref: float, z: float) -> float:
     """
