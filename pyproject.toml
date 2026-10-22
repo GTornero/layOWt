@@ -30,6 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 doc = [
     "sphinx~=5.0.1",
+    "astroid<3",
     "myst-parser",
     "furo",
     "nbsphinx",
