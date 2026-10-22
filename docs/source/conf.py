@@ -59,6 +59,8 @@ autosummary_generate = True
 
 autoapi_dirs = ["../../layowt"]
 
+autoapi_keep_files = True
+
 autoapi_options = [
     'members',
     'undoc-members',
